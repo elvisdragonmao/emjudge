@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { MINIO_BUCKETS } from "@judge/shared";
@@ -96,7 +96,7 @@ export default defineConfig({
     );
 
     // 5. Run in Docker
-    const log = this.runInDocker(workDir, totalTimeoutMs);
+    const log = await this.runInDocker(workDir, totalTimeoutMs, submissionId);
 
     // 6. Parse results (same as HTML/CSS/JS)
     return this.parseResults(workDir, log, artifactsDir);
@@ -118,44 +118,78 @@ export default defineConfig({
     return false;
   }
 
-  private runInDocker(workDir: string, timeoutMs: number): string {
-    try {
-      return execSync(
-        [
-          config.DOCKER_BIN,
-          "run",
-          "--rm",
-          "--network=host", // React needs npm install, so network is needed for build phase
-          "--memory=1g",
-          "--cpus=2",
-          `--stop-timeout=${Math.ceil(timeoutMs / 1000)}`,
-          `-v ${workDir}:/work`,
-          `-w /work`,
-          config.JUDGE_IMAGE,
-          "sh",
-          "-c",
-          '"npx playwright test --reporter=json 2>&1"',
-        ].join(" "),
-        {
-          timeout: timeoutMs + 30_000,
-          encoding: "utf-8",
-          stdio: ["pipe", "pipe", "pipe"],
-        },
-      );
-    } catch (err: unknown) {
-      const error = err as {
-        stdout?: string;
-        stderr?: string;
-        message?: string;
-        code?: string;
-      };
-      if (error.code === "ETIMEDOUT") {
-        throw new Error(
-          `[Docker execution]\nJudge timed out after ${Math.ceil(timeoutMs / 1000)}s\n${error.stdout ?? ""}\n${error.stderr ?? ""}`,
-        );
-      }
-      return `[Docker execution]\n${error.stdout ?? ""}\n${error.stderr ?? ""}\n${error.message ?? ""}`;
-    }
+  private runInDocker(
+    workDir: string,
+    timeoutMs: number,
+    submissionId: string,
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const args = [
+        "run",
+        "--rm",
+        "--network=host", // React needs npm install, so network is needed for build phase
+        "--memory=1g",
+        "--cpus=2",
+        `--stop-timeout=${Math.ceil(timeoutMs / 1000)}`,
+        "-v",
+        `${workDir}:/work`,
+        "-w",
+        "/work",
+        config.JUDGE_IMAGE,
+        "sh",
+        "-c",
+        "npx playwright test --reporter=json",
+      ];
+
+      const child = spawn(config.DOCKER_BIN, args, {
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      let timedOut = false;
+      let output = "";
+
+      const timer = setTimeout(() => {
+        timedOut = true;
+        child.kill("SIGKILL");
+      }, timeoutMs + 30_000);
+
+      child.stdout.on("data", (chunk: Buffer) => {
+        const text = chunk.toString();
+        output += text;
+        process.stdout.write(`[judge:${submissionId}] ${text}`);
+      });
+
+      child.stderr.on("data", (chunk: Buffer) => {
+        const text = chunk.toString();
+        output += text;
+        process.stderr.write(`[judge:${submissionId}] ${text}`);
+      });
+
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+
+      child.on("close", (code) => {
+        clearTimeout(timer);
+
+        if (timedOut) {
+          reject(
+            new Error(
+              `[Docker execution]\nJudge timed out after ${Math.ceil(timeoutMs / 1000)}s\n${output}`,
+            ),
+          );
+          return;
+        }
+
+        if (code !== 0) {
+          resolve(`[Docker execution]\n${output}`);
+          return;
+        }
+
+        resolve(output);
+      });
+    });
   }
 
   private parseResults(

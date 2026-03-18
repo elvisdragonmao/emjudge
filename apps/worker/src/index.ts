@@ -207,29 +207,72 @@ async function failJob(job: JobRow, errorMessage: string) {
 
   await query(
     `UPDATE judge_jobs
-     SET status = $1, finished_at = NOW(), error_message = $2,
-         locked_by = CASE WHEN $1 = 'pending' THEN NULL ELSE locked_by END,
-         locked_at = CASE WHEN $1 = 'pending' THEN NULL ELSE locked_at END
+     SET status = $1::judge_job_status, finished_at = NOW(), error_message = $2,
+         locked_by = CASE WHEN $4 THEN NULL ELSE locked_by END,
+         locked_at = CASE WHEN $4 THEN NULL ELSE locked_at END
      WHERE id = $3`,
-    [jobStatus, errorMessage, job.id],
+    [jobStatus, errorMessage, job.id, !isLastAttempt],
   );
 
   await query(
     `UPDATE submission_runs
-     SET status = $1,
+     SET status = $1::submission_status,
          log = COALESCE(log || E'\n', '') || $2,
          finished_at = NOW()
      WHERE id = $3`,
     [subStatus, errorMessage, job.run_id],
   );
 
-  await query(`UPDATE submissions SET status = $1 WHERE id = $2`, [
-    subStatus,
-    job.submission_id,
-  ]);
+  await query(
+    `UPDATE submissions SET status = $1::submission_status WHERE id = $2`,
+    [subStatus, job.submission_id],
+  );
 }
 
 async function recoverStaleJobs() {
+  // First, mark exhausted jobs as dead
+  const exhaustedJobs = await queryMany<{
+    id: string;
+    run_id: string;
+    submission_id: string;
+  }>(
+    `SELECT id, run_id, submission_id
+     FROM judge_jobs
+     WHERE status IN ('locked', 'running', 'pending')
+       AND attempts >= max_attempts`,
+  );
+
+  if (exhaustedJobs.length > 0) {
+    const jobIds = exhaustedJobs.map((j) => j.id);
+    const runIds = exhaustedJobs.map((j) => j.run_id);
+    const submissionIds = exhaustedJobs.map((j) => j.submission_id);
+
+    await query(
+      `UPDATE judge_jobs
+       SET status = 'dead', finished_at = NOW(), error_message = 'Max attempts exceeded'
+       WHERE id = ANY($1::uuid[])`,
+      [jobIds],
+    );
+    await query(
+      `UPDATE submission_runs
+       SET status = 'error', finished_at = NOW(),
+           log = COALESCE(log || E'\n', '') || $1
+       WHERE id = ANY($2::uuid[])`,
+      [stepLog("Max attempts exceeded, marking as error"), runIds],
+    );
+    await query(
+      `UPDATE submissions
+       SET status = 'error'
+       WHERE id = ANY($1::uuid[])`,
+      [submissionIds],
+    );
+
+    console.warn(
+      `[${config.WORKER_ID}] Marked ${exhaustedJobs.length} exhausted job(s) as dead`,
+    );
+  }
+
+  // Then, recover stale jobs that still have retries left
   const staleJobs = await queryMany<{
     id: string;
     run_id: string;
@@ -237,7 +280,8 @@ async function recoverStaleJobs() {
   }>(
     `SELECT id, run_id, submission_id
      FROM judge_jobs
-     WHERE status IN ('locked', 'running')`,
+     WHERE status IN ('locked', 'running')
+       AND attempts < max_attempts`,
   );
 
   if (staleJobs.length === 0) return;
@@ -301,15 +345,30 @@ async function main() {
 
   fs.mkdirSync(config.WORK_DIR, { recursive: true });
 
+  // Test database connection
+  try {
+    const result = await queryOne<{ count: string }>(
+      "SELECT COUNT(*) as count FROM judge_jobs WHERE status = 'pending'",
+    );
+    console.log(
+      `[${config.WORKER_ID}] DB connected. Pending jobs: ${result?.count ?? 0}`,
+    );
+  } catch (err) {
+    console.error(`[${config.WORKER_ID}] DB connection failed:`, err);
+    process.exit(1);
+  }
+
   await recoverStaleJobs();
+
+  console.log(`[${config.WORKER_ID}] Entering main poll loop...`);
 
   while (true) {
     try {
       const job = await acquireJob();
       if (job) {
+        console.log(`[${config.WORKER_ID}] Acquired job: ${job.id}`);
         await processJob(job);
       } else {
-        // No job available, wait
         await new Promise((resolve) =>
           setTimeout(resolve, config.POLL_INTERVAL_MS),
         );

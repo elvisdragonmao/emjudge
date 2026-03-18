@@ -3,3 +3,9 @@ dist/
 .env
 *.log
 .DS_Store
+
+# TypeScript build artifacts in web src (should not be committed)
+apps/web/src/**/*.js
+apps/web/src/**/*.js.map
+apps/web/src/**/*.d.ts
+apps/web/src/**/*.d.ts.map

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useParams } from "react-router";
 import { useRejudgeSubmission, useSubmissionDetail } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,58 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/stores/auth";
 import { api } from "@/lib/api";
+
+function ArtifactImage({
+  artifactId,
+  alt,
+  className,
+}: {
+  artifactId: string;
+  alt: string;
+  className?: string;
+}) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const token = localStorage.getItem("token");
+    console.log(
+      `[ArtifactImage] Token exists: ${!!token}, artifactId: ${artifactId}`,
+    );
+    api
+      .get<{ url: string }>(`/artifacts/${artifactId}/url`)
+      .then((res) => {
+        console.log(`[ArtifactImage] Got URL:`, res.url);
+        if (!cancelled) setImageUrl(res.url);
+      })
+      .catch((err) => {
+        console.error(`[ArtifactImage] Error:`, err);
+        if (!cancelled) setError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [artifactId]);
+
+  if (error) {
+    return (
+      <div className="flex h-32 items-center justify-center bg-muted text-muted-foreground">
+        無法載入圖片
+      </div>
+    );
+  }
+
+  if (!imageUrl) {
+    return (
+      <div className="flex h-32 items-center justify-center bg-muted text-muted-foreground">
+        載入中...
+      </div>
+    );
+  }
+
+  return <img src={imageUrl} alt={alt} className={className} />;
+}
 
 function statusVariant(status: string) {
   switch (status) {
@@ -239,8 +291,8 @@ export function SubmissionDetailPage() {
                         key={artifact.id}
                         className="overflow-hidden rounded border border-border"
                       >
-                        <img
-                          src={`/api/artifacts/${artifact.id}/url`}
+                        <ArtifactImage
+                          artifactId={artifact.id}
                           alt={artifact.name}
                           className="w-full"
                         />
