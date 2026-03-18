@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { MINIO_BUCKETS } from "@judge/shared";
@@ -12,18 +12,24 @@ import type {
 } from "./base.pipeline.js";
 
 export class HtmlCssJsPipeline implements JudgePipeline {
+  private log(submissionId: string, msg: string) {
+    console.log(`[pipeline:${submissionId}] ${msg}`);
+  }
+
   async execute(ctx: JudgeContext): Promise<JudgeResult> {
     const { workDir, submissionId, spec } = ctx;
     const siteDir = path.join(workDir, "site");
     const testDir = path.join(workDir, "tests");
     const artifactsDir = path.join(workDir, "artifacts");
 
+    this.log(submissionId, "Creating directories...");
     // Create directories
     fs.mkdirSync(siteDir, { recursive: true });
     fs.mkdirSync(testDir, { recursive: true });
     fs.mkdirSync(artifactsDir, { recursive: true });
 
     // 1. Download submission files
+    this.log(submissionId, "Downloading submission files from MinIO...");
     const files = await queryMany<{
       path: string;
       minio_key: string;
@@ -36,6 +42,7 @@ export class HtmlCssJsPipeline implements JudgePipeline {
       const dest = path.join(siteDir, file.path);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       await downloadFile(MINIO_BUCKETS.SUBMISSIONS, file.minio_key, dest);
+      this.log(submissionId, `  Downloaded: ${file.path}`);
     }
 
     // 2. Write test file
@@ -77,7 +84,7 @@ export default defineConfig({
     screenshot: 'on',
   },
   webServer: {
-    command: 'npx serve site -l 8080 -s',
+    command: 'serve site -l 8080 -s',
     port: 8080,
     reuseExistingServer: false,
   },
@@ -88,51 +95,101 @@ export default defineConfig({
     );
 
     // 4. Run in Docker rootless
-    const log = this.runInDocker(workDir, spec.timeoutMs);
+    this.log(
+      submissionId,
+      `Running in Docker (timeout: ${spec.timeoutMs}ms)...`,
+    );
+    this.log(submissionId, `Docker image: ${config.JUDGE_IMAGE}`);
+    this.log(submissionId, `Work dir: ${workDir}`);
+    const log = await this.runInDocker(workDir, spec.timeoutMs, submissionId);
 
     // 5. Parse results
     return this.parseResults(workDir, log, artifactsDir);
   }
 
-  private runInDocker(workDir: string, timeoutMs: number): string {
-    try {
-      const result = execSync(
-        [
-          config.DOCKER_BIN,
-          "run",
-          "--rm",
-          "--network=none",
-          "--memory=512m",
-          "--cpus=1",
-          `--stop-timeout=${Math.ceil(timeoutMs / 1000)}`,
-          `-v ${workDir}:/work`,
-          `-w /work`,
-          config.JUDGE_IMAGE,
-          "sh",
-          "-c",
-          '"npx playwright test --reporter=json 2>&1"',
-        ].join(" "),
-        {
-          timeout: timeoutMs + 10_000,
-          encoding: "utf-8",
-          stdio: ["pipe", "pipe", "pipe"],
-        },
+  private runInDocker(
+    workDir: string,
+    timeoutMs: number,
+    submissionId: string,
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const args = [
+        "run",
+        "--rm",
+        // "--network=none", // TODO: re-enable for security after pre-installing deps in image
+        "--memory=512m",
+        "--cpus=1",
+        `--stop-timeout=${Math.ceil(timeoutMs / 1000)}`,
+        "-v",
+        `${workDir}:/work`,
+        "-w",
+        "/work",
+        "-e",
+        "NODE_PATH=/usr/lib/node_modules",
+        config.JUDGE_IMAGE,
+        "sh",
+        "-c",
+        "npx playwright test",
+      ];
+
+      console.log(
+        `[docker:${submissionId}] Running: ${config.DOCKER_BIN} ${args.join(" ")}`,
       );
-      return result;
-    } catch (err: unknown) {
-      const error = err as {
-        stdout?: string;
-        stderr?: string;
-        message?: string;
-        code?: string;
-      };
-      if (error.code === "ETIMEDOUT") {
-        throw new Error(
-          `[Docker execution]\nJudge timed out after ${Math.ceil(timeoutMs / 1000)}s\n${error.stdout ?? ""}\n${error.stderr ?? ""}`,
-        );
-      }
-      return `[Docker execution]\n${error.stdout ?? ""}\n${error.stderr ?? ""}\n${error.message ?? ""}`;
-    }
+
+      const child = spawn(config.DOCKER_BIN, args, {
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+      console.log(
+        `[docker:${submissionId}] Docker process spawned, PID: ${child.pid}`,
+      );
+
+      let timedOut = false;
+      let output = "";
+
+      const timer = setTimeout(() => {
+        timedOut = true;
+        child.kill("SIGKILL");
+      }, timeoutMs + 10_000);
+
+      child.stdout.on("data", (chunk: Buffer) => {
+        const text = chunk.toString();
+        output += text;
+        process.stdout.write(`[judge:${submissionId}] ${text}`);
+      });
+
+      child.stderr.on("data", (chunk: Buffer) => {
+        const text = chunk.toString();
+        output += text;
+        process.stderr.write(`[judge:${submissionId}] ${text}`);
+      });
+
+      child.on("error", (err) => {
+        console.error(`[docker:${submissionId}] Process error:`, err);
+        clearTimeout(timer);
+        reject(err);
+      });
+
+      child.on("close", (code) => {
+        clearTimeout(timer);
+
+        if (timedOut) {
+          reject(
+            new Error(
+              `[Docker execution]\nJudge timed out after ${Math.ceil(timeoutMs / 1000)}s\n${output}`,
+            ),
+          );
+          return;
+        }
+
+        if (code !== 0) {
+          resolve(`[Docker execution]\n${output}`);
+          return;
+        }
+
+        resolve(output);
+      });
+    });
   }
 
   private parseResults(
@@ -163,6 +220,8 @@ export default defineConfig({
 
     // Try to parse JSON results
     const resultsPath = path.join(artifactsDir, "results.json");
+    console.log(`[parseResults] Looking for results at: ${resultsPath}`);
+    console.log(`[parseResults] Exists: ${fs.existsSync(resultsPath)}`);
     let testResults: JudgeResult["testResults"] = [];
     let score = 0;
     let maxScore = 0;
