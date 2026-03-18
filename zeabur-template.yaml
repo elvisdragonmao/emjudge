@@ -35,6 +35,16 @@ spec:
     - **Score tracking**: Visual score history with charts
     - **File management**: MinIO-based file storage for submissions and artifacts
 
+    ## Services
+
+    | Service    | Description |
+    |------------|-------------|
+    | PostgreSQL  | Database for all application data |
+    | MinIO       | Object storage for submissions and artifacts |
+    | API         | Fastify REST API backend (port 3000) |
+    | Web         | React SPA built and served as static files (port 3001) |
+    | Caddy       | Reverse proxy: routes `/api/*` to API, everything else to Web |
+
     ## Default Admin Account
 
     After deployment, login with:
@@ -44,11 +54,21 @@ spec:
     ## Important Notes
 
     - The Judge Worker requires Docker access and must be run separately on a machine with Docker installed
-    - Run database migrations after first deployment: The API will auto-migrate on startup
+    - Database migrations run automatically when the API starts
 
-    ## Worker Setup (External)
+    ## Worker Setup (External Machine)
 
-    The Judge Worker needs to run on a separate machine with Docker access:
+    The Judge Worker polls the database for jobs. It requires outbound access to PostgreSQL and MinIO — no inbound ports needed.
+
+    ### 1. Expose PostgreSQL for external access
+
+    In the Zeabur Dashboard, go to the **PostgreSQL** service → **Networking** tab → enable **Port Forwarding** for port `5432`. You will receive an external hostname and port (e.g. `hkg1.clusters.zeabur.com:34567`).
+
+    ### 2. Expose MinIO for external access
+
+    In the Zeabur Dashboard, go to the **MinIO** service → **Domains** tab → bind a domain (e.g. `minio.yourdomain.com`). This exposes MinIO's API over HTTPS on port 443.
+
+    ### 3. Run the worker
 
     ```bash
     # Clone the repository
@@ -58,21 +78,24 @@ spec:
     # Install dependencies
     pnpm install
 
-    # Build the judge-runner image
+    # Build the judge-runner image (required once, or after updates)
     docker build -t judge-runner:latest docker/judge-runner/
 
-    # Set environment variables
-    export DATABASE_URL=<your-zeabur-postgres-url>
-    export MINIO_ENDPOINT=<your-zeabur-minio-endpoint>
-    export MINIO_PORT=443
-    export MINIO_ACCESS_KEY=<your-minio-access-key>
-    export MINIO_SECRET_KEY=<your-minio-secret-key>
-    export MINIO_USE_SSL=true
-
-    # Run the worker
+    # Build the worker
+    pnpm --filter @judge/shared build
     pnpm --filter @judge/worker build
+
+    # Set environment variables and start
+    export DATABASE_URL=postgresql://postgres:<password>@hkg1.clusters.zeabur.com:<port>/judge
+    export MINIO_ENDPOINT=minio.yourdomain.com
+    export MINIO_PORT=443
+    export MINIO_ACCESS_KEY=minioadmin
+    export MINIO_SECRET_KEY=<your-minio-secret>
+    export MINIO_USE_SSL=true
     node apps/worker/dist/index.js
     ```
+
+    The worker will connect to the remote database, poll for pending judge jobs, run them in local Docker containers, and upload artifacts back to MinIO.
 
   services:
     - name: PostgreSQL
@@ -178,7 +201,6 @@ spec:
     - name: API
       icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/node.svg
       template: GIT
-      domainKey: PUBLIC_DOMAIN
       dependencies:
         - PostgreSQL
         - MinIO
@@ -203,7 +225,7 @@ spec:
           JWT_EXPIRES_IN:
             default: "7d"
           CORS_ORIGIN:
-            default: "*"
+            default: https://${PUBLIC_DOMAIN}
           DEFAULT_ADMIN_PASSWORD:
             default: ${DEFAULT_ADMIN_PASSWORD}
           MINIO_ENDPOINT:
@@ -220,6 +242,83 @@ spec:
             default: pnpm install && pnpm --filter @judge/shared build && pnpm --filter @judge/api build && pnpm --filter @judge/api db:migrate && pnpm --filter @judge/api db:seed
           ZBPACK_START_COMMAND:
             default: node apps/api/dist/index.js
+          API_HOST:
+            default: ${CONTAINER_HOSTNAME}
+            expose: true
+            readonly: true
+          API_PORT:
+            default: "3000"
+            expose: true
+            readonly: true
+
+    - name: Web
+      icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/node.svg
+      template: GIT
+      dependencies:
+        - API
+      spec:
+        source:
+          type: GITHUB
+          repoID: 1183262376
+          branch: main
+        ports:
+          - id: web
+            port: 3001
+            type: HTTP
+        env:
+          PORT:
+            default: "3001"
+          WEB_HOST:
+            default: ${CONTAINER_HOSTNAME}
+            expose: true
+            readonly: true
+          WEB_PORT:
+            default: "3001"
+            expose: true
+            readonly: true
+          ZBPACK_BUILD_COMMAND:
+            default: pnpm install && pnpm --filter @judge/shared build && pnpm --filter @judge/web build && pnpm add -g serve
+          ZBPACK_START_COMMAND:
+            default: serve -s apps/web/dist -l 3001
+
+    - name: Caddy
+      icon: https://cdn.zeabur.com/caddy.png
+      template: PREBUILT
+      domainKey: PUBLIC_DOMAIN
+      dependencies:
+        - Web
+        - API
+      spec:
+        source:
+          image: caddy:2-alpine
+        ports:
+          - id: web
+            port: 80
+            type: HTTP
+        configs:
+          - path: /etc/caddy/Caddyfile
+            template: |
+              {
+                servers {
+                  trusted_proxies static private_ranges
+                  trusted_proxies_strict
+                  client_ip_headers X-Forwarded-For X-Real-IP
+                }
+              }
+
+              :80 {
+                log
+                encode
+
+                handle /api/* {
+                  reverse_proxy ${API_HOST}:${API_PORT}
+                }
+
+                handle {
+                  reverse_proxy ${WEB_HOST}:${WEB_PORT}
+                }
+              }
+            envsubst: true
 
 localization:
   zh-TW:
@@ -250,6 +349,16 @@ localization:
       - **成績追蹤**：圖表化的成績歷史記錄
       - **檔案管理**：基於 MinIO 的檔案儲存系統
 
+      ## 服務架構
+
+      | 服務       | 說明 |
+      |-----------|------|
+      | PostgreSQL | 儲存所有應用程式資料 |
+      | MinIO      | 儲存繳交的作業與評測產物 |
+      | API        | Fastify REST API 後端（port 3000） |
+      | Web        | React SPA 建置後以靜態檔案服務（port 3001） |
+      | Caddy      | Reverse proxy：`/api/*` 轉發到 API，其餘轉發到 Web |
+
       ## 預設管理員帳號
 
       部署完成後，使用以下帳號登入：
@@ -263,7 +372,17 @@ localization:
 
       ## Worker 設定（外部機器）
 
-      Judge Worker 需要在有 Docker 的外部機器上運行：
+      Worker 使用輪詢方式從資料庫取得 job，只需要**對外連出**到 PostgreSQL 和 MinIO，不需要開放任何入站 port。
+
+      ### 1. 開放 PostgreSQL 外部連線
+
+      在 Zeabur Dashboard 的 **PostgreSQL** 服務 → **Networking** 分頁 → 啟用 **Port Forwarding** (port `5432`)。你會拿到一個外部 hostname 和 port（例如 `hkg1.clusters.zeabur.com:34567`）。
+
+      ### 2. 開放 MinIO 外部連線
+
+      在 Zeabur Dashboard 的 **MinIO** 服務 → **Domains** 分頁 → 綁定一個 domain（例如 `minio.yourdomain.com`），讓 MinIO API 透過 HTTPS port 443 對外開放。
+
+      ### 3. 啟動 Worker
 
       ```bash
       # Clone 專案
@@ -273,18 +392,21 @@ localization:
       # 安裝依賴
       pnpm install
 
-      # 建置 judge-runner 映像
+      # 建置 judge-runner 映像（第一次或更新後執行）
       docker build -t judge-runner:latest docker/judge-runner/
 
-      # 設定環境變數
-      export DATABASE_URL=<your-zeabur-postgres-url>
-      export MINIO_ENDPOINT=<your-zeabur-minio-endpoint>
-      export MINIO_PORT=443
-      export MINIO_ACCESS_KEY=<your-minio-access-key>
-      export MINIO_SECRET_KEY=<your-minio-secret-key>
-      export MINIO_USE_SSL=true
-
-      # 運行 worker
+      # 建置 worker
+      pnpm --filter @judge/shared build
       pnpm --filter @judge/worker build
+
+      # 設定環境變數並啟動
+      export DATABASE_URL=postgresql://postgres:<password>@hkg1.clusters.zeabur.com:<port>/judge
+      export MINIO_ENDPOINT=minio.yourdomain.com
+      export MINIO_PORT=443
+      export MINIO_ACCESS_KEY=minioadmin
+      export MINIO_SECRET_KEY=<your-minio-secret>
+      export MINIO_USE_SSL=true
       node apps/worker/dist/index.js
       ```
+
+      Worker 啟動後會連上遠端資料庫，持續輪詢待評測的 job，在本機 Docker 中執行，再將結果和 artifacts 上傳回 MinIO。
