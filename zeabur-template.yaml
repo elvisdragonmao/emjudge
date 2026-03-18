@@ -60,9 +60,9 @@ spec:
 
     The Judge Worker polls the database for jobs. It requires outbound access to PostgreSQL and MinIO — no inbound ports needed.
 
-    ### 1. Expose PostgreSQL for external access
+    ### 1. Get the PostgreSQL external connection string
 
-    In the Zeabur Dashboard, go to the **PostgreSQL** service → **Networking** tab → enable **Port Forwarding** for port `5432`. You will receive an external hostname and port (e.g. `hkg1.clusters.zeabur.com:34567`).
+    Port forwarding is enabled automatically. In the Zeabur Dashboard, go to the **PostgreSQL** service → **Instructions** → copy the **Connection String (external, for Worker)** value.
 
     ### 2. Expose MinIO for external access
 
@@ -86,10 +86,10 @@ spec:
     pnpm --filter @judge/worker build
 
     # Set environment variables and start
-    export DATABASE_URL=postgresql://postgres:<password>@hkg1.clusters.zeabur.com:<port>/judge
+    export DATABASE_URL=postgresql://root:<password>@hkg1.clusters.zeabur.com:<port>/zeabur
     export MINIO_ENDPOINT=minio.yourdomain.com
     export MINIO_PORT=443
-    export MINIO_ACCESS_KEY=minioadmin
+    export MINIO_ACCESS_KEY=minio
     export MINIO_SECRET_KEY=<your-minio-secret>
     export MINIO_USE_SSL=true
     node apps/worker/dist/index.js
@@ -99,104 +99,139 @@ spec:
 
   services:
     - name: PostgreSQL
-      icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/postgresql.svg
+      icon: https://cdn.zeabur.com/marketplace/postgresql.svg
       template: PREBUILT
       spec:
         source:
-          image: postgres:16-alpine
+          image: postgres:18
+          command:
+            - docker-entrypoint.sh
+            - -c
+            - config_file=/etc/postgresql/postgresql.conf
         ports:
           - id: database
             port: 5432
             type: TCP
         volumes:
           - id: data
-            dir: /var/lib/postgresql/data
+            dir: /var/lib/postgresql/18/docker
         env:
-          POSTGRES_USER:
-            default: postgres
-          POSTGRES_PASSWORD:
-            default: ${PASSWORD}
-          POSTGRES_DB:
-            default: judge
           PGDATA:
-            default: /var/lib/postgresql/data/pgdata
+            default: /var/lib/postgresql/18/docker/pgdata
+          POSTGRES_CONNECTION_STRING:
+            default: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+            expose: true
+          POSTGRES_DATABASE:
+            default: ${POSTGRES_DB}
+            expose: true
+          POSTGRES_DB:
+            default: zeabur
           POSTGRES_HOST:
             default: ${CONTAINER_HOSTNAME}
             expose: true
-            readonly: true
+          POSTGRES_PASSWORD:
+            default: ${PASSWORD}
+            expose: true
           POSTGRES_PORT:
-            default: "5432"
+            default: ${DATABASE_PORT}
             expose: true
-            readonly: true
-          DATABASE_URL:
-            default: postgresql://postgres:${PASSWORD}@${CONTAINER_HOSTNAME}:5432/judge
+          POSTGRES_URI:
+            default: ${POSTGRES_CONNECTION_STRING}
             expose: true
-            readonly: true
+          POSTGRES_USER:
+            default: root
+          POSTGRES_USERNAME:
+            default: ${POSTGRES_USER}
+            expose: true
         instructions:
-          - type: PASSWORD
-            title: PostgreSQL Password
+          - title: Connection String
+            content: postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}
+          - title: PostgreSQL Connect Command
+            content: psql "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${PORT_FORWARDED_HOSTNAME}:${DATABASE_PORT_FORWARDED_PORT}/${POSTGRES_DATABASE}"
+          - title: PostgreSQL username
+            content: ${POSTGRES_USERNAME}
+          - title: PostgreSQL password
             content: ${POSTGRES_PASSWORD}
-            category: Credentials
-          - type: TEXT
-            title: Connection String
-            content: ${DATABASE_URL}
-            category: Connection
+          - title: PostgreSQL database
+            content: ${POSTGRES_DATABASE}
+          - title: PostgreSQL host
+            content: ${PORT_FORWARDED_HOSTNAME}
+          - title: PostgreSQL port
+            content: ${DATABASE_PORT_FORWARDED_PORT}
+        configs:
+          - path: /etc/postgresql/postgresql.conf
+            template: |
+              listen_addresses = '*'
+              max_connections = 256
+              shared_buffers = 256MB
+              dynamic_shared_memory_type = posix
+              max_wal_size = 1GB
+              min_wal_size = 80MB
+              log_timezone = 'UTC'
+              datestyle = 'iso, mdy'
+              timezone = 'UTC'
+              lc_messages = 'en_US.UTF-8'
+              lc_monetary = 'en_US.UTF-8'
+              lc_numeric = 'en_US.UTF-8'
+              lc_time = 'en_US.UTF-8'
+              default_text_search_config = 'pg_catalog.english'
 
     - name: MinIO
-      icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/minio.svg
+      icon: https://cdn.zeabur.com/marketplace/minio.svg
       template: PREBUILT
       spec:
         source:
-          image: minio/minio:latest
+          image: quay.io/minio/minio:latest
           command:
-            - server
-            - /data
-            - --console-address
-            - ":9001"
+            - /bin/sh
+          args:
+            - -c
+            - |
+              minio server /data --console-address :9090 &
+              MINIO_PID=$!
+              while ! curl -s http://localhost:9000/minio/health/live; do
+                echo 'Waiting for MinIO to start...'
+                sleep 1
+              done
+              sleep 5
+              mc alias set myminio http://localhost:9000 $MINIO_USERNAME $MINIO_PASSWORD
+              mc mb myminio/submissions || true
+              mc mb myminio/artifacts || true
+              wait $MINIO_PID
         ports:
-          - id: api
+          - id: web
             port: 9000
             type: HTTP
           - id: console
-            port: 9001
+            port: 9090
             type: HTTP
         volumes:
           - id: data
             dir: /data
         env:
-          MINIO_ROOT_USER:
-            default: minioadmin
-          MINIO_ROOT_PASSWORD:
-            default: ${PASSWORD}
+          MINIO_BROWSER_REDIRECT:
+            default: "false"
           MINIO_HOST:
             default: ${CONTAINER_HOSTNAME}
             expose: true
-            readonly: true
+          MINIO_PASSWORD:
+            default: ${MINIO_ROOT_PASSWORD}
+            expose: true
           MINIO_PORT:
             default: "9000"
             expose: true
-            readonly: true
-          MINIO_ACCESS_KEY:
+          MINIO_ROOT_PASSWORD:
+            default: ${PASSWORD}
+          MINIO_ROOT_USER:
+            default: minio
+          MINIO_USERNAME:
             default: ${MINIO_ROOT_USER}
             expose: true
-            readonly: true
-          MINIO_SECRET_KEY:
-            default: ${MINIO_ROOT_PASSWORD}
-            expose: true
-            readonly: true
         instructions:
-          - type: TEXT
-            title: MinIO Console
-            content: Access the MinIO console on port 9001
-            category: Access
-          - type: TEXT
-            title: Access Key
-            content: ${MINIO_ROOT_USER}
-            category: Credentials
-          - type: PASSWORD
-            title: Secret Key
-            content: ${MINIO_ROOT_PASSWORD}
-            category: Credentials
+          - title: Access Key (Username)
+            content: ${MINIO_USERNAME}
+          - title: Secret Key (Password)
+            content: ${MINIO_PASSWORD}
 
     - name: API
       icon: https://raw.githubusercontent.com/zeabur/service-icons/main/marketplace/node.svg
@@ -206,8 +241,8 @@ spec:
         - MinIO
       spec:
         source:
-          type: GITHUB
-          repoID: 1183262376
+          source: GITHUB
+          repo: 1183262376
           branch: main
         ports:
           - id: web
@@ -219,7 +254,7 @@ spec:
           HOST:
             default: "0.0.0.0"
           DATABASE_URL:
-            default: ${DATABASE_URL}
+            default: ${POSTGRES_CONNECTION_STRING}
           JWT_SECRET:
             default: ${JWT_SECRET}
           JWT_EXPIRES_IN:
@@ -233,13 +268,13 @@ spec:
           MINIO_PORT:
             default: ${MINIO_PORT}
           MINIO_ACCESS_KEY:
-            default: ${MINIO_ACCESS_KEY}
+            default: ${MINIO_USERNAME}
           MINIO_SECRET_KEY:
-            default: ${MINIO_SECRET_KEY}
+            default: ${MINIO_PASSWORD}
           MINIO_USE_SSL:
             default: "false"
           ZBPACK_BUILD_COMMAND:
-            default: pnpm install && pnpm --filter @judge/shared build && pnpm --filter @judge/api build && pnpm --filter @judge/api db:migrate && pnpm --filter @judge/api db:seed
+            default: pnpm install && pnpm --filter @judge/api build && pnpm --filter @judge/api db:migrate && pnpm --filter @judge/api db:seed
           ZBPACK_START_COMMAND:
             default: node apps/api/dist/index.js
           API_HOST:
@@ -258,8 +293,8 @@ spec:
         - API
       spec:
         source:
-          type: GITHUB
-          repoID: 1183262376
+          source: GITHUB
+          repo: 1183262376
           branch: main
         ports:
           - id: web
@@ -277,7 +312,7 @@ spec:
             expose: true
             readonly: true
           ZBPACK_BUILD_COMMAND:
-            default: pnpm install && pnpm --filter @judge/shared build && pnpm --filter @judge/web build && pnpm add -g serve
+            default: pnpm install && pnpm --filter @judge/web build && pnpm add -g serve
           ZBPACK_START_COMMAND:
             default: serve -s apps/web/dist -l 3001
 
@@ -374,9 +409,9 @@ localization:
 
       Worker 使用輪詢方式從資料庫取得 job，只需要**對外連出**到 PostgreSQL 和 MinIO，不需要開放任何入站 port。
 
-      ### 1. 開放 PostgreSQL 外部連線
+      ### 1. 取得 PostgreSQL 外部連線字串
 
-      在 Zeabur Dashboard 的 **PostgreSQL** 服務 → **Networking** 分頁 → 啟用 **Port Forwarding** (port `5432`)。你會拿到一個外部 hostname 和 port（例如 `hkg1.clusters.zeabur.com:34567`）。
+      Port Forwarding 會自動啟用。在 Zeabur Dashboard 的 **PostgreSQL** 服務 → **Instructions** → 複製 **Connection String (external, for Worker)** 的值。
 
       ### 2. 開放 MinIO 外部連線
 
@@ -400,10 +435,10 @@ localization:
       pnpm --filter @judge/worker build
 
       # 設定環境變數並啟動
-      export DATABASE_URL=postgresql://postgres:<password>@hkg1.clusters.zeabur.com:<port>/judge
+      export DATABASE_URL=postgresql://root:<password>@hkg1.clusters.zeabur.com:<port>/zeabur
       export MINIO_ENDPOINT=minio.yourdomain.com
       export MINIO_PORT=443
-      export MINIO_ACCESS_KEY=minioadmin
+      export MINIO_ACCESS_KEY=minio
       export MINIO_SECRET_KEY=<your-minio-secret>
       export MINIO_USE_SSL=true
       node apps/worker/dist/index.js
