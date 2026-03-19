@@ -311,10 +311,8 @@ spec:
             default: "3001"
             expose: true
             readonly: true
-          ZBPACK_BUILD_COMMAND:
-            default: pnpm --filter @judge/web build && pnpm add serve
-          ZBPACK_START_COMMAND:
-            default: pnpm serve -s apps/web/dist -l 3001
+          ZBPACK_APP_DIR:
+            default: "apps/web"
 
     - name: Caddy
       icon: https://cdn.zeabur.com/caddy.png
