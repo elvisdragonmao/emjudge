@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { PageTitle } from "@/components/page-title";
 import { useAuth } from "@/stores/auth";
 import { useClasses, useCreateClass } from "@/hooks/use-api";
 import {
@@ -37,6 +38,7 @@ export function ClassesPage() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="班級" />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">班級</h1>
         {user && isStaff(user.role) && (

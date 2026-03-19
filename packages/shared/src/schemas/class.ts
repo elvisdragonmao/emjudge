@@ -38,16 +38,11 @@ export const RemoveClassMemberRequest = z.object({
 });
 export type RemoveClassMemberRequest = z.infer<typeof RemoveClassMemberRequest>;
 
-// ─── Score history for chart ─────────────────────────────
-export const ScoreHistoryPoint = z.object({
-  date: z.string(),
-  score: z.number(),
-  assignmentTitle: z.string(),
+export const ClassLeaderboardEntry = z.object({
+  userId: z.string().uuid(),
+  username: z.string(),
+  displayName: z.string(),
+  totalScore: z.number(),
+  scoredAssignments: z.number().int().nonnegative(),
 });
-export type ScoreHistoryPoint = z.infer<typeof ScoreHistoryPoint>;
-
-export const ClassScoreHistory = z.object({
-  classId: z.string().uuid(),
-  points: z.array(ScoreHistoryPoint),
-});
-export type ClassScoreHistory = z.infer<typeof ClassScoreHistory>;
+export type ClassLeaderboardEntry = z.infer<typeof ClassLeaderboardEntry>;

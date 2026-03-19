@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PageTitle } from "@/components/page-title";
 import { useAuth } from "@/stores/auth";
 import { updateUser } from "@/stores/auth";
 import { useUpdateProfile, useChangePassword } from "@/hooks/use-api";
@@ -48,6 +49,7 @@ export function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="個人設定" />
       <h1 className="text-2xl font-bold">個人設定</h1>
 
       <div className="grid gap-6 md:grid-cols-2">

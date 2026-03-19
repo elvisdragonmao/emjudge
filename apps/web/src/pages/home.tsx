@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { PageTitle } from "@/components/page-title";
 import { useAuth } from "@/stores/auth";
 import { Button } from "@/components/ui/button";
 
@@ -6,9 +7,9 @@ export function HomePage() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative">
+      <PageTitle title="首頁" />
       <div className="pointer-events-none absolute left-1/2 top-[-260px] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(30,64,175,0.25),transparent_70%)] blur-2xl" />
-      <div className="pointer-events-none absolute right-[-120px] top-24 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(16,185,129,0.22),transparent_70%)] blur-2xl" />
 
       <section className="mx-auto flex max-w-5xl flex-col items-center gap-6 py-20 text-center">
         <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm">
@@ -54,7 +55,7 @@ export function HomePage() {
         ].map((item) => (
           <div
             key={item.title}
-            className="group rounded-2xl border border-border bg-card p-6 shadow-sm transition-transform duration-300 hover:-translate-y-1"
+            className="group rounded-2xl border border-border bg-card p-6 shadow-sm transition-transform duration-300"
           >
             <h3 className="text-lg font-semibold">{item.title}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>

@@ -25,6 +25,7 @@
     "marked": "^15.0.12",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-helmet-async": "^3.0.0",
     "react-router": "^7.6.2",
     "tailwind-merge": "^3.3.0",
     "zod": "^3.25.67"

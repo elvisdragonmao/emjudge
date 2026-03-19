@@ -10,6 +10,7 @@ import { isStaff } from "@judge/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageTitle } from "@/components/page-title";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { FileUploader } from "@/components/file-uploader";
 import { SubmissionGrid, SubmissionList } from "@/components/submission-grid";
@@ -21,7 +22,7 @@ export function AssignmentDetailPage() {
   const { data: submissionData } = useSubmissions(id!);
   const submitMutation = useSubmit(id!);
 
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 
   const handleUpload = useCallback(
     (files: File[]) => {
@@ -38,8 +39,23 @@ export function AssignmentDetailPage() {
     [submitMutation],
   );
 
-  if (isLoading) return <p className="text-muted-foreground">載入中...</p>;
-  if (!assignment) return <p className="text-muted-foreground">作業不存在</p>;
+  if (isLoading) {
+    return (
+      <>
+        <PageTitle title="作業載入中" />
+        <p className="text-muted-foreground">載入中...</p>
+      </>
+    );
+  }
+
+  if (!assignment) {
+    return (
+      <>
+        <PageTitle title="作業不存在" />
+        <p className="text-muted-foreground">作業不存在</p>
+      </>
+    );
+  }
 
   const isExpired = assignment.dueDate
     ? new Date(assignment.dueDate) < new Date()
@@ -47,6 +63,7 @@ export function AssignmentDetailPage() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={assignment.title} />
       {/* Assignment header */}
       <div>
         <div className="flex items-center gap-3">
