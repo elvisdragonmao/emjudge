@@ -29,6 +29,7 @@ export class ReactPipeline implements JudgePipeline {
     fs.mkdirSync(projectDir, { recursive: true });
     fs.mkdirSync(testDir, { recursive: true });
     fs.mkdirSync(artifactsDir, { recursive: true });
+    fs.chmodSync(artifactsDir, 0o777);
 
     // 1. Copy trusted React template into projectDir
     // The template should be pre-built into the judge Docker image at /templates/react
