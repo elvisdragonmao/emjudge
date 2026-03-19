@@ -371,7 +371,13 @@ test("截圖", async ({ page }) => {
 
 ## 正式部署
 
-### 1. 建置前端
+### 1. 建置 shared package
+
+```bash
+pnpm --filter @judge/shared build
+```
+
+### 2. 建置前端
 
 ```bash
 pnpm --filter @judge/web build
@@ -379,7 +385,7 @@ pnpm --filter @judge/web build
 
 產出在 `apps/web/dist/`，用 nginx 或任何 static server 提供。
 
-### 2. 建置後端
+### 3. 建置後端
 
 ```bash
 pnpm --filter @judge/api build
@@ -391,7 +397,7 @@ pnpm --filter @judge/api build
 node apps/api/dist/index.js
 ```
 
-### 3. 建置 Worker
+### 4. 建置 Worker
 
 ```bash
 pnpm --filter @judge/worker build
@@ -405,7 +411,7 @@ node apps/worker/dist/index.js
 
 可以啟動多個 worker 實例（設定不同 `WORKER_ID`），PG queue 的 `SKIP LOCKED` 會自動分配工作。
 
-### 4. Nginx 設定範例
+### 5. Nginx 設定範例
 
 ```nginx
 server {
@@ -428,7 +434,7 @@ server {
 }
 ```
 
-### 5. 正式環境 checklist
+### 6. 正式環境 checklist
 
 - [ ] 設定強密碼的 `JWT_SECRET`
 - [ ] 設定 `DEFAULT_ADMIN_PASSWORD` 並在 seed 後刪除或修改

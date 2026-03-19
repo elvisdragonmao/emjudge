@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -24,11 +25,87 @@
   --radius-lg: 0.5rem;
 }
 
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-background: #0b0f12;
+  --color-foreground: #f5f7fa;
+  --color-muted: #11161a;
+  --color-muted-foreground: #a4abb2;
+  --color-border: #20262b;
+  --color-primary: #f0f2f4;
+  --color-primary-foreground: #11161a;
+  --color-secondary: #1a2024;
+  --color-secondary-foreground: #e6e8ea;
+  --color-accent: #1a2024;
+  --color-accent-foreground: #e6e8ea;
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #1a0f10;
+  --color-ring: #cfd6dd;
+  --color-card: #0f1316;
+  --color-card-foreground: #f5f7fa;
+  --color-popover: #0f1316;
+  --color-popover-foreground: #f5f7fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --color-background: #0b0f12;
+    --color-foreground: #f5f7fa;
+    --color-muted: #11161a;
+    --color-muted-foreground: #a4abb2;
+    --color-border: #20262b;
+    --color-primary: #f0f2f4;
+    --color-primary-foreground: #11161a;
+    --color-secondary: #1a2024;
+    --color-secondary-foreground: #e6e8ea;
+    --color-accent: #1a2024;
+    --color-accent-foreground: #e6e8ea;
+    --color-destructive: #f87171;
+    --color-destructive-foreground: #1a0f10;
+    --color-ring: #cfd6dd;
+    --color-card: #0f1316;
+    --color-card-foreground: #f5f7fa;
+    --color-popover: #0f1316;
+    --color-popover-foreground: #f5f7fa;
+  }
+}
+
 body {
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Space Grotesk", "Noto Sans TC", "Segoe UI", sans-serif;
   background-color: var(--color-background);
   color: var(--color-foreground);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.8s ease both;
+}
+
+.delay-1 {
+  animation-delay: 0.12s;
+}
+
+.delay-2 {
+  animation-delay: 0.24s;
+}
+
+.delay-3 {
+  animation-delay: 0.36s;
 }
 
 /* Markdown content styling */
