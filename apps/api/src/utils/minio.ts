@@ -39,7 +39,27 @@ export async function getPresignedUrl(
   key: string,
   expiry = 3600,
 ): Promise<string> {
-  return minioClient.presignedGetObject(bucket, key, expiry);
+  const url = await minioClient.presignedGetObject(bucket, key, expiry);
+  const base = config.MINIO_PUBLIC_BASE_URL.trim();
+  if (!base) return url;
+  if (base.startsWith("/")) {
+    const parsed = new URL(url);
+    const bucketPath = `/${bucket}`;
+    if (parsed.pathname.startsWith(bucketPath)) {
+      parsed.pathname = `${base}${parsed.pathname}`;
+      return parsed.toString();
+    }
+    return url;
+  }
+  try {
+    const parsed = new URL(url);
+    const baseUrl = new URL(base);
+    parsed.protocol = baseUrl.protocol;
+    parsed.host = baseUrl.host;
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 /** Download file as buffer */

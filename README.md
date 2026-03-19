@@ -112,6 +112,7 @@ docker build -t judge-runner:latest docker/judge-runner/
 | `MINIO_ACCESS_KEY`       | MinIO access key      | `minioadmin`                                          |
 | `MINIO_SECRET_KEY`       | MinIO secret key      | `minioadmin`                                          |
 | `MINIO_USE_SSL`          | MinIO 是否使用 SSL    | `false`                                               |
+| `MINIO_PUBLIC_BASE_URL`  | MinIO 對外 base path  | `/img`                                                |
 | `WORKER_ID`              | Worker 識別名稱       | `worker-<pid>`                                        |
 | `POLL_INTERVAL_MS`       | Worker 輪詢間隔（ms） | `3000`                                                |
 | `WORK_DIR`               | Worker 工作目錄       | `/tmp/judge-work`                                     |

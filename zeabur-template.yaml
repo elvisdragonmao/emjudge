@@ -273,6 +273,8 @@ spec:
             default: ${MINIO_PASSWORD}
           MINIO_USE_SSL:
             default: "false"
+          MINIO_PUBLIC_BASE_URL:
+            default: "/img"
           ZBPACK_APP_DIR:
             default: "apps/api"
           ZBPACK_BUILD_COMMAND:
@@ -349,6 +351,10 @@ spec:
 
                 handle /api/* {
                   reverse_proxy ${API_HOST}:${API_PORT}
+                }
+
+                handle /img/* {
+                  reverse_proxy ${MINIO_HOST}:${MINIO_PORT}
                 }
 
                 handle {
