@@ -24,6 +24,7 @@ const EnvSchema = z.object({
     .string()
     .transform((v) => v === "true")
     .default("false"),
+  MINIO_PUBLIC_BASE_URL: z.string().default("/img"),
 
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
 
