@@ -4,8 +4,8 @@ metadata:
   name: emjudge
 spec:
   description: Frontend assignment submission and auto-grading platform with Playwright testing
-  icon: 
-  coverImage: 
+  icon:
+  coverImage:
   tags:
     - Tool
     - Education
@@ -276,7 +276,7 @@ spec:
           ZBPACK_APP_DIR:
             default: "apps/api"
           ZBPACK_BUILD_COMMAND:
-            default: pnpm build && pnpm db:migrate && pnpm db:seed
+            default: cd ../.. && pnpm --filter @judge/shared build && pnpm --filter @judge/api build && pnpm --filter @judge/api db:migrate && pnpm --filter @judge/api db:seed
           ZBPACK_START_COMMAND:
             default: node dist/index.js
           API_HOST:
@@ -315,6 +315,8 @@ spec:
             readonly: true
           ZBPACK_APP_DIR:
             default: "apps/web"
+          ZBPACK_BUILD_COMMAND:
+            default: cd ../.. && pnpm --filter @judge/shared build && pnpm --filter @judge/web build
 
     - name: Caddy
       icon: https://cdn.zeabur.com/caddy.png
