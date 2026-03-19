@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { PageTitle } from "@/components/page-title";
 import { Link } from "react-router";
 
 export function AdminPage() {
@@ -91,6 +92,7 @@ export function AdminPage() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="管理後台" />
       <h1 className="text-2xl font-bold">管理後台</h1>
 
       <div className="flex gap-2">

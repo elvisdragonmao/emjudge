@@ -4,6 +4,7 @@ import { useRejudgeSubmission, useSubmissionDetail } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageTitle } from "@/components/page-title";
 import { useAuth } from "@/stores/auth";
 import { api } from "@/lib/api";
 
@@ -111,8 +112,23 @@ export function SubmissionDetailPage() {
     }
   }, []);
 
-  if (isLoading) return <p className="text-muted-foreground">載入中...</p>;
-  if (!submission) return <p className="text-muted-foreground">提交不存在</p>;
+  if (isLoading) {
+    return (
+      <>
+        <PageTitle title="提交載入中" />
+        <p className="text-muted-foreground">載入中...</p>
+      </>
+    );
+  }
+
+  if (!submission) {
+    return (
+      <>
+        <PageTitle title="提交不存在" />
+        <p className="text-muted-foreground">提交不存在</p>
+      </>
+    );
+  }
 
   const isInQueue = ["pending", "queued", "running"].includes(
     submission.status,
@@ -123,6 +139,7 @@ export function SubmissionDetailPage() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={`提交詳情 - ${submission.displayName}`} />
       <div>
         <h1 className="text-2xl font-bold">提交詳情</h1>
         <p className="text-muted-foreground">

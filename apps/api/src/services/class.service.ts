@@ -154,24 +154,42 @@ export async function isUserInClass(userId: string, classId: string) {
   return row !== null;
 }
 
-export async function getScoreHistory(classId: string, userId: string) {
+export async function getClassLeaderboard(classId: string) {
   const rows = await queryMany<{
-    score: number;
-    title: string;
-    created_at: Date;
+    user_id: string;
+    username: string;
+    display_name: string;
+    total_score: string;
+    scored_assignments: string;
   }>(
-    `SELECT s.score, a.title, s.created_at
-     FROM submissions s
-     JOIN assignments a ON a.id = s.assignment_id
-     WHERE a.class_id = $1 AND s.user_id = $2
-       AND s.status = 'completed' AND s.score IS NOT NULL
-     ORDER BY s.created_at ASC`,
-    [classId, userId],
+    `WITH best_scores AS (
+       SELECT s.user_id, s.assignment_id, MAX(s.score) AS best_score
+       FROM submissions s
+       JOIN assignments a ON a.id = s.assignment_id
+       WHERE a.class_id = $1
+         AND s.status = 'completed'
+         AND s.score IS NOT NULL
+       GROUP BY s.user_id, s.assignment_id
+     )
+     SELECT u.id AS user_id,
+            u.username,
+            u.display_name,
+            COALESCE(SUM(bs.best_score), 0) AS total_score,
+            COUNT(bs.assignment_id) AS scored_assignments
+     FROM class_members cm
+     JOIN users u ON u.id = cm.user_id
+     LEFT JOIN best_scores bs ON bs.user_id = u.id
+     WHERE cm.class_id = $1
+     GROUP BY u.id, u.username, u.display_name
+     ORDER BY total_score DESC, scored_assignments DESC, u.username ASC`,
+    [classId],
   );
 
   return rows.map((r) => ({
-    date: r.created_at.toISOString().split("T")[0]!,
-    score: r.score,
-    assignmentTitle: r.title,
+    userId: r.user_id,
+    username: r.username,
+    displayName: r.display_name,
+    totalScore: Number(r.total_score),
+    scoredAssignments: Number(r.scored_assignments),
   }));
 }

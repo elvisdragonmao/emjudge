@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { PageTitle } from "@/components/page-title";
 import { useAuth } from "@/stores/auth";
 import { useLogin } from "@/hooks/use-api";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
+      <PageTitle title="登入" />
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-center text-xl">登入</CardTitle>

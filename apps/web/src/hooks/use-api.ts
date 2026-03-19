@@ -6,7 +6,7 @@ import type {
   LoginRequest,
   ClassSummary,
   ClassDetail,
-  ScoreHistoryPoint,
+  ClassLeaderboardEntry,
   AssignmentSummary,
   AssignmentDetail,
   SubmissionListResponse,
@@ -71,11 +71,11 @@ export function useClassDetail(id: string) {
   });
 }
 
-export function useClassScoreHistory(classId: string) {
+export function useClassLeaderboard(classId: string) {
   return useQuery({
-    queryKey: queryKeys.classScoreHistory(classId),
+    queryKey: queryKeys.classLeaderboard(classId),
     queryFn: () =>
-      api.get<ScoreHistoryPoint[]>(`/classes/${classId}/score-history`),
+      api.get<ClassLeaderboardEntry[]>(`/classes/${classId}/leaderboard`),
     enabled: !!classId,
   });
 }

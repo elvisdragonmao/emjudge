@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useCreateAssignment } from "@/hooks/use-api";
+import { PageTitle } from "@/components/page-title";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,6 +75,7 @@ export function AssignmentCreatePage() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title="建立作業" />
       <h1 className="text-2xl font-bold">建立作業</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">

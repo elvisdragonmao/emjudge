@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router";
 import {
   useClassDetail,
-  useClassScoreHistory,
+  useClassLeaderboard,
   useAssignments,
   useUsers,
   useAddClassMembers,
@@ -14,13 +14,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageTitle } from "@/components/page-title";
 import { ScoreChart } from "@/components/score-chart";
 
 export function ClassDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { data: cls, isLoading } = useClassDetail(id!);
-  const { data: scoreHistory } = useClassScoreHistory(id!);
+  const { data: leaderboard } = useClassLeaderboard(id!);
   const { data: assignments } = useAssignments(id!);
 
   const addMembersMutation = useAddClassMembers(id!);
@@ -31,8 +32,23 @@ export function ClassDetailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: allUsers } = useUsers(1);
 
-  if (isLoading) return <p className="text-muted-foreground">載入中...</p>;
-  if (!cls) return <p className="text-muted-foreground">班級不存在</p>;
+  if (isLoading) {
+    return (
+      <>
+        <PageTitle title="班級載入中" />
+        <p className="text-muted-foreground">載入中...</p>
+      </>
+    );
+  }
+
+  if (!cls) {
+    return (
+      <>
+        <PageTitle title="班級不存在" />
+        <p className="text-muted-foreground">班級不存在</p>
+      </>
+    );
+  }
 
   const memberIds = new Set(cls.members?.map((m) => m.id) ?? []);
 
@@ -55,6 +71,7 @@ export function ClassDetailPage() {
 
   return (
     <div className="space-y-6">
+      <PageTitle title={cls.name} />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -68,11 +85,11 @@ export function ClassDetailPage() {
         )}
       </div>
 
-      {/* Score chart */}
-      {scoreHistory && scoreHistory.length > 0 && (
+      {/* Leaderboard */}
+      {leaderboard && leaderboard.length > 0 && (
         <Card>
           <CardContent className="pt-6">
-            <ScoreChart data={scoreHistory} />
+            <ScoreChart data={leaderboard} />
           </CardContent>
         </Card>
       )}
@@ -84,7 +101,11 @@ export function ClassDetailPage() {
           <p className="text-muted-foreground">尚未建立作業</p>
         )}
         {assignments?.map((assignment) => (
-          <Link key={assignment.id} to={`/assignments/${assignment.id}`}>
+          <Link
+            key={assignment.id}
+            to={`/assignments/${assignment.id}`}
+            className="block"
+          >
             <Card className="transition-shadow hover:shadow-md">
               <CardContent className="flex items-center justify-between p-4">
                 <div>

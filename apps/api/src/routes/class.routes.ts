@@ -44,13 +44,23 @@ export async function classRoutes(app: FastifyInstance) {
     },
   );
 
-  // Get score history for a class (for the student)
+  // Get cumulative class leaderboard
   app.get(
-    "/api/classes/:id/score-history",
+    "/api/classes/:id/leaderboard",
     { preHandler: authenticate },
-    async (request) => {
+    async (request, reply) => {
       const { id } = IdParam.parse(request.params);
-      return classService.getScoreHistory(id, request.userId);
+
+      if (request.userRole === "student") {
+        const inClass = await classService.isUserInClass(request.userId, id);
+        if (!inClass) {
+          return reply
+            .status(403)
+            .send({ error: "Forbidden", statusCode: 403 });
+        }
+      }
+
+      return classService.getClassLeaderboard(id);
     },
   );
 

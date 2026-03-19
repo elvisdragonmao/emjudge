@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useAssignmentDetail, useUpdateAssignment } from "@/hooks/use-api";
+import { PageTitle } from "@/components/page-title";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,11 +88,27 @@ export function AssignmentEditPage() {
     );
   };
 
-  if (isLoading) return <p className="text-muted-foreground">載入中...</p>;
-  if (!assignment) return <p className="text-muted-foreground">作業不存在</p>;
+  if (isLoading) {
+    return (
+      <>
+        <PageTitle title="作業載入中" />
+        <p className="text-muted-foreground">載入中...</p>
+      </>
+    );
+  }
+
+  if (!assignment) {
+    return (
+      <>
+        <PageTitle title="作業不存在" />
+        <p className="text-muted-foreground">作業不存在</p>
+      </>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      <PageTitle title={`編輯作業 - ${assignment.title}`} />
       <h1 className="text-2xl font-bold">編輯作業</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">

@@ -79,11 +79,7 @@ export function AppLayout() {
               }
               aria-label="切換深色模式"
             >
-              {theme === "dark"
-                ? "深色"
-                : theme === "light"
-                  ? "淺色"
-                  : "跟隨系統"}
+              {theme === "dark" ? "🌑" : theme === "light" ? "☀️" : "💻"}
             </Button>
             {user && (
               <>
@@ -103,7 +99,7 @@ export function AppLayout() {
       </header>
 
       {/* Main content */}
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto max-w-6xl px-4 py-6 overflow-hidden">
         <Outlet />
       </main>
     </div>
