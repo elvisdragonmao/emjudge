@@ -1,4 +1,12 @@
-# emjudge
+<div align=center style=margin-bottom:30px>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/web/public/emjudge.svg">
+  <source media="(prefers-color-scheme: light)" srcset="apps/web/public/emjudge-dark.svg">
+  <img alt="EM Logo" src="https://elvismao.com/logo.svg" width="200"/>
+</picture>
+
+</div>
 
 前端作業繳交與自動評測平台。學生上傳 HTML/CSS/JS 或 React 作業，系統在隔離的 Docker 環境中用 Playwright 執行測試，產出分數、測試結果、截圖與 log。
 
