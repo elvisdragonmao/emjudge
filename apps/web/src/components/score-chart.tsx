@@ -20,6 +20,13 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 	useEffect(() => {
 		if (!chartRef.current) return;
 
+		const styles = getComputedStyle(document.documentElement);
+		const foreground = styles.getPropertyValue("--color-foreground").trim();
+		const mutedForeground = styles.getPropertyValue("--color-muted-foreground").trim();
+		const border = styles.getPropertyValue("--color-border").trim();
+		const accent = styles.getPropertyValue("--catppuccin-color-blue").trim();
+		const accentSoft = styles.getPropertyValue("--catppuccin-color-lavender").trim();
+
 		const chart = echarts.init(chartRef.current);
 		instanceRef.current = chart;
 
@@ -35,10 +42,13 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 			title: {
 				text: i18n.t("components.scoreChart.title"),
 				left: "center",
-				textStyle: { fontSize: 14, fontWeight: 500 }
+				textStyle: { fontSize: 14, fontWeight: 500, color: foreground }
 			},
 			tooltip: {
 				trigger: "axis",
+				backgroundColor: styles.getPropertyValue("--color-card").trim(),
+				borderColor: border,
+				textStyle: { color: foreground },
 				formatter: (params: unknown) => {
 					const list = params as Array<{
 						axisValueLabel: string;
@@ -63,14 +73,19 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 			xAxis: {
 				type: "category",
 				data: data.map(d => d.date),
+				axisLine: { lineStyle: { color: border } },
+				axisTick: { lineStyle: { color: border } },
 				axisLabel: {
 					rotate: 30,
+					color: mutedForeground,
 					formatter: (value: string) => formatPointTime(value)
 				}
 			},
 			yAxis: {
 				type: "value",
-				min: 0
+				min: 0,
+				axisLabel: { color: mutedForeground },
+				splitLine: { lineStyle: { color: border, opacity: 0.55 } }
 			},
 			series: [
 				{
@@ -80,12 +95,12 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 						assignmentTitle: d.assignmentTitle
 					})),
 					smooth: true,
-					lineStyle: { width: 3 },
-					itemStyle: { color: "#3b82f6" },
+					lineStyle: { width: 3, color: accent },
+					itemStyle: { color: accentSoft },
 					areaStyle: {
 						color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-							{ offset: 0, color: "rgba(59, 130, 246, 0.32)" },
-							{ offset: 1, color: "rgba(59, 130, 246, 0.05)" }
+							{ offset: 0, color: colorMixForChart(accent, 0.34) },
+							{ offset: 1, color: colorMixForChart(accentSoft, 0.08) }
 						])
 					}
 				}
@@ -104,4 +119,15 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 	}, [data]);
 
 	return <div ref={chartRef} className={className} style={{ height: 300 }} />;
+}
+
+function colorMixForChart(color: string, alpha: number) {
+	const normalized = color.replace("#", "");
+	if (normalized.length !== 6) return color;
+
+	const r = Number.parseInt(normalized.slice(0, 2), 16);
+	const g = Number.parseInt(normalized.slice(2, 4), 16);
+	const b = Number.parseInt(normalized.slice(4, 6), 16);
+
+	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

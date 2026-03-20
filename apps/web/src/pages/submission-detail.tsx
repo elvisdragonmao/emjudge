@@ -134,7 +134,7 @@ export function SubmissionDetailPage() {
 						{rejudgeMutation.isPending ? t("pages.submissionDetail.rejudging") : t("pages.submissionDetail.rejudge")}
 					</Button>
 					{isInQueue && <p className="text-xs text-muted-foreground">{t("pages.submissionDetail.inQueue")}</p>}
-					{rejudgeMutation.isSuccess && <p className="text-xs text-green-600">{t("pages.submissionDetail.rejudgeSuccess")}</p>}
+					{rejudgeMutation.isSuccess && <p className="text-xs text-[var(--color-success)]">{t("pages.submissionDetail.rejudgeSuccess")}</p>}
 					{rejudgeMutation.isError && <p className="text-xs text-destructive">{t("pages.submissionDetail.rejudgeFailed")}</p>}
 				</div>
 			)}
@@ -241,7 +241,7 @@ export function SubmissionDetailPage() {
 									{run.testResults.map((test, index) => (
 										<div key={index} className="flex items-center justify-between rounded border border-border px-3 py-2 text-sm">
 											<div className="flex items-center gap-2">
-												<span className={test.passed ? "text-green-600" : "text-red-600"}>{test.passed ? t("pages.submissionDetail.pass") : t("pages.submissionDetail.fail")}</span>
+												<span className={test.passed ? "text-[var(--color-success)]" : "text-destructive"}>{test.passed ? t("pages.submissionDetail.pass") : t("pages.submissionDetail.fail")}</span>
 												<span>{test.name}</span>
 											</div>
 											<span className="text-muted-foreground">
@@ -258,7 +258,7 @@ export function SubmissionDetailPage() {
 						{run.cleanLog && (
 							<div className="space-y-2">
 								<h4 className="text-sm font-medium">Log</h4>
-								{run.cleanLog.includes("ETIMEDOUT") && <p className="text-xs text-amber-600">{t("pages.submissionDetail.timeoutHint")}</p>}
+								{run.cleanLog.includes("ETIMEDOUT") && <p className="text-xs text-[var(--color-running)]">{t("pages.submissionDetail.timeoutHint")}</p>}
 								<pre className="max-h-60 overflow-auto rounded bg-muted p-3 text-xs">{run.cleanLog}</pre>
 							</div>
 						)}

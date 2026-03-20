@@ -23,11 +23,13 @@ export function AppLayout() {
 	useEffect(() => {
 		const root = document.documentElement;
 		if (theme === "system") {
-			root.removeAttribute("data-theme");
+			root.classList.remove("latte", "mocha");
 			localStorage.removeItem("theme");
 			return;
 		}
-		root.setAttribute("data-theme", theme);
+
+		root.classList.remove("latte", "mocha");
+		root.classList.add(theme === "dark" ? "mocha" : "latte");
 		localStorage.setItem("theme", theme);
 	}, [theme]);
 

@@ -107,7 +107,7 @@ export function AdminPage() {
 								<Input placeholder={t("pages.admin.usernamePlaceholder")} value={newUsername} onChange={e => setNewUsername(e.target.value)} required />
 								<Input placeholder={t("pages.admin.passwordPlaceholder")} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={6} />
 								<Input placeholder={t("pages.admin.displayNamePlaceholder")} value={newDisplayName} onChange={e => setNewDisplayName(e.target.value)} required />
-								<select value={newRole} onChange={e => setNewRole(e.target.value as typeof newRole)} className="rounded-md border border-border px-3 py-2 text-sm">
+								<select value={newRole} onChange={e => setNewRole(e.target.value as typeof newRole)} className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground">
 									<option value="student">{t("roles.student")}</option>
 									<option value="teacher">{t("roles.teacher")}</option>
 									<option value="admin">{t("roles.admin")}</option>
@@ -139,7 +139,7 @@ export function AdminPage() {
 							<Download />
 							{t("pages.admin.import")}
 						</Button>
-						{bulkImportMutation.isSuccess && <p className="text-sm text-green-600">{t("pages.admin.importDone")}</p>}
+						{bulkImportMutation.isSuccess && <p className="text-sm text-[var(--color-success)]">{t("pages.admin.importDone")}</p>}
 					</CardContent>
 				</Card>
 			)}
