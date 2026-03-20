@@ -6,18 +6,16 @@ import { pool } from "./pool.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function migrate() {
-  const schemaPath = path.join(__dirname, "schema.sql");
-  const sql = fs.readFileSync(schemaPath, "utf-8");
+	const schemaPath = path.join(__dirname, "schema.sql");
+	const sql = fs.readFileSync(schemaPath, "utf-8");
 
-  console.log("Running database migration...");
-  await pool.query(sql);
-  console.log(
-    "Migration completed successfully (tables created or already exist).",
-  );
-  await pool.end();
+	console.log("Running database migration...");
+	await pool.query(sql);
+	console.log("Migration completed successfully (tables created or already exist).");
+	await pool.end();
 }
 
-migrate().catch((err) => {
-  console.error("Migration failed:", err);
-  process.exit(1);
+migrate().catch(err => {
+	console.error("Migration failed:", err);
+	process.exit(1);
 });
