@@ -15,6 +15,7 @@ import type {
   JudgeResult,
 } from "./base.pipeline.js";
 import { normalizePlaywrightTestContent } from "./playwright-test-content.js";
+import { stripSharedSubmissionRoot } from "./submission-paths.js";
 
 /**
  * React pipeline:
@@ -58,7 +59,7 @@ export class ReactPipeline implements JudgePipeline {
       [submissionId],
     );
 
-    for (const file of files) {
+    for (const file of stripSharedSubmissionRoot(files)) {
       const normalizedPath = normalizeSubmissionPath(file.path);
       if (!normalizedPath) {
         continue;

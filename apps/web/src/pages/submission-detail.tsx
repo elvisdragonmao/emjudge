@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { useRejudgeSubmission, useSubmissionDetail } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -146,6 +146,9 @@ export function SubmissionDetailPage() {
     <div className="space-y-6">
       <PageTitle title={`提交詳情 - ${submission.displayName}`} />
       <div>
+        <Button asChild variant="outline" size="sm" className="mb-3">
+          <Link to={`/assignments/${submission.assignmentId}`}>返回題目</Link>
+        </Button>
         <h1 className="text-2xl font-bold">提交詳情</h1>
         <p className="text-muted-foreground">
           {submission.displayName} (@{submission.username}) /{" "}

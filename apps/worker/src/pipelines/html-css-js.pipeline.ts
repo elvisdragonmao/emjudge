@@ -11,6 +11,7 @@ import type {
   JudgeResult,
 } from "./base.pipeline.js";
 import { normalizePlaywrightTestContent } from "./playwright-test-content.js";
+import { stripSharedSubmissionRoot } from "./submission-paths.js";
 
 export class HtmlCssJsPipeline implements JudgePipeline {
   private log(submissionId: string, msg: string) {
@@ -41,7 +42,7 @@ export class HtmlCssJsPipeline implements JudgePipeline {
       [submissionId],
     );
 
-    for (const file of files) {
+    for (const file of stripSharedSubmissionRoot(files)) {
       const dest = path.join(siteDir, file.path);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       await downloadFile(MINIO_BUCKETS.SUBMISSIONS, file.minio_key, dest);
