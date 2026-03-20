@@ -17,12 +17,14 @@ export interface JudgeResult {
     name: string;
     localPath: string;
   }>;
+  logAlreadyStreamed?: boolean;
 }
 
 export interface JudgeContext {
   submissionId: string;
   runId: string;
   workDir: string;
+  appendLog: (message: string) => Promise<void>;
   assignmentType: "html-css-js" | "react";
   spec: {
     startCommand: string;

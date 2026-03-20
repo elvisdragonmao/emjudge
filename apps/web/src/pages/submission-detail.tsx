@@ -8,7 +8,12 @@ import { PageTitle } from "@/components/page-title";
 import { useRefetchCountdown } from "@/hooks/use-refetch-countdown";
 import { useAuth } from "@/stores/auth";
 import { api } from "@/lib/api";
-import { isSubmissionActive } from "@/lib/submission-status";
+import {
+  getSubmissionStatusLabel,
+  getSubmissionStatusVariant,
+  isSubmissionActive,
+} from "@/lib/submission-status";
+import { getJudgeStages, sanitizeJudgeLog } from "@/lib/judge-log";
 
 function ArtifactImage({
   artifactId,
@@ -60,33 +65,6 @@ function ArtifactImage({
   }
 
   return <img src={imageUrl} alt={alt} className={className} />;
-}
-
-function statusVariant(status: string) {
-  switch (status) {
-    case "completed":
-      return "success" as const;
-    case "failed":
-    case "error":
-      return "destructive" as const;
-    case "running":
-    case "queued":
-      return "warning" as const;
-    default:
-      return "secondary" as const;
-  }
-}
-
-function statusLabel(status: string) {
-  const map: Record<string, string> = {
-    pending: "等待中",
-    queued: "排隊中",
-    running: "評測中",
-    completed: "完成",
-    failed: "失敗",
-    error: "錯誤",
-  };
-  return map[status] ?? status;
 }
 
 export function SubmissionDetailPage() {
@@ -141,6 +119,11 @@ export function SubmissionDetailPage() {
   const canRejudge =
     !!user && (user.role !== "student" || user.id === submission.userId);
   const canDownloadFiles = user?.role === "admin";
+  const runsWithDerivedState = submission.runs.map((run) => ({
+    ...run,
+    cleanLog: run.log ? sanitizeJudgeLog(run.log) : null,
+    stages: getJudgeStages(run.log, run.status),
+  }));
 
   return (
     <div className="space-y-6">
@@ -179,8 +162,11 @@ export function SubmissionDetailPage() {
 
       {/* Overview */}
       <div className="flex items-center gap-4">
-        <Badge variant={statusVariant(submission.status)} className="text-sm">
-          {statusLabel(submission.status)}
+        <Badge
+          variant={getSubmissionStatusVariant(submission.status)}
+          className="text-sm"
+        >
+          {getSubmissionStatusLabel(submission.status)}
         </Badge>
         {isInQueue && (
           <span className="text-xs text-muted-foreground">
@@ -235,13 +221,13 @@ export function SubmissionDetailPage() {
       </Card>
 
       {/* Runs */}
-      {submission.runs.map((run) => (
+      {runsWithDerivedState.map((run) => (
         <Card key={run.id}>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">評測結果</CardTitle>
-              <Badge variant={statusVariant(run.status)}>
-                {statusLabel(run.status)}
+              <Badge variant={getSubmissionStatusVariant(run.status)}>
+                {getSubmissionStatusLabel(run.status)}
               </Badge>
             </div>
             {run.startedAt && (
@@ -263,6 +249,26 @@ export function SubmissionDetailPage() {
                 分數: {run.score} / {run.maxScore}
               </div>
             )}
+
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">執行階段</h4>
+              <div className="flex flex-wrap gap-2">
+                {run.stages.map((stage) => (
+                  <Badge
+                    key={stage.id}
+                    variant={
+                      stage.state === "done"
+                        ? "success"
+                        : stage.state === "current"
+                          ? "info"
+                          : "outline"
+                    }
+                  >
+                    {stage.label}
+                  </Badge>
+                ))}
+              </div>
+            </div>
 
             {/* Test results */}
             {run.testResults && run.testResults.length > 0 && (
@@ -294,17 +300,17 @@ export function SubmissionDetailPage() {
             )}
 
             {/* Log */}
-            {run.log && (
+            {run.cleanLog && (
               <div className="space-y-2">
                 <h4 className="text-sm font-medium">Log</h4>
-                {run.log.includes("ETIMEDOUT") && (
+                {run.cleanLog.includes("ETIMEDOUT") && (
                   <p className="text-xs text-amber-600">
                     此次評測在容器內逾時，通常是 npm install/build
                     太久或程式卡住。
                   </p>
                 )}
                 <pre className="max-h-60 overflow-auto rounded bg-muted p-3 text-xs">
-                  {run.log}
+                  {run.cleanLog}
                 </pre>
               </div>
             )}

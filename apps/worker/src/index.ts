@@ -149,6 +149,7 @@ async function processJob(job: JobRow) {
       submissionId: job.submission_id,
       runId: job.run_id,
       workDir,
+      appendLog: (message: string) => appendRunLog(job.run_id, message),
       assignmentType,
       spec: {
         startCommand: spec.start_command,
@@ -178,7 +179,10 @@ async function processJob(job: JobRow) {
     }
 
     // Update results
-    const mergedLog = `${result.log}\n\n${formatJudgeResultLog(result)}\n${stepLog("Results persisted")}`;
+    const logSuffix = `${formatJudgeResultLog(result)}\n${stepLog("Results persisted")}`;
+    const mergedLog = result.logAlreadyStreamed
+      ? logSuffix
+      : `${result.log}\n\n${logSuffix}`;
     await query(
       `UPDATE submission_runs
        SET status = 'completed', score = $1, max_score = $2,
