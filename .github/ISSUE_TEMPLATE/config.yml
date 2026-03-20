@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security policy
+    url: https://github.com/elvismao/frontend-judge/security/policy
+    about: Please report vulnerabilities privately by following the repository security policy.
+  - name: Contributing guide
+    url: https://github.com/elvismao/frontend-judge/blob/main/CONTRIBUTING.md
+    about: Review contribution workflow and validation expectations before opening a pull request.

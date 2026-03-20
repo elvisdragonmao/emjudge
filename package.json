@@ -9,6 +9,7 @@
 		"dev:web": "pnpm --filter @judge/web dev",
 		"dev:worker": "pnpm --filter @judge/worker dev",
 		"format": "prettier --write .",
+		"format:check": "prettier --check .",
 		"lint": "pnpm run -r lint",
 		"prepare": "husky"
 	},

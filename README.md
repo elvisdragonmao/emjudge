@@ -302,6 +302,13 @@ The SQL schema lives in `apps/api/src/db/schema.sql`.
 4. Wait for grading to complete.
 5. Review score, screenshots, logs, and test output.
 
+## Community Health
+
+- Code of Conduct: `CODE_OF_CONDUCT.md`
+- Contributing Guide: `CONTRIBUTING.md`
+- Security Policy: `SECURITY.md`
+- License: `LICENSE`
+
 ## Contributing
 
-If you extend the system, prefer keeping cross-app contracts in `packages/shared`, and keep user-facing API details documented in Swagger rather than duplicating them in Markdown.
+If you extend the system, prefer keeping cross-app contracts in `packages/shared`, and keep user-facing API details documented in Swagger rather than duplicating them in Markdown. For contribution workflow, review `CONTRIBUTING.md` before opening an issue or pull request.
