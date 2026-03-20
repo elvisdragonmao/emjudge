@@ -1,0 +1,87 @@
+name: Bug report
+description: Report a reproducible problem in the web app, API, worker, or tooling.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        For security vulnerabilities, please do not file a public issue. Follow `SECURITY.md` instead.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which part of the project is affected?
+      options:
+        - apps/web
+        - apps/api
+        - apps/worker
+        - packages/shared
+        - packages/config
+        - docker / infrastructure
+        - docs / repository meta
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+      placeholder: A concise description of the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List the exact steps needed to reproduce the issue.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. Submit ...
+        4. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: What happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, screenshots, or payloads
+      description: Paste any helpful console logs, API responses, screenshots, or stack traces.
+      render: shell
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include versions, browser, OS, or deployment details if relevant.
+      placeholder: |
+        - OS:
+        - Browser:
+        - Node.js:
+        - pnpm:
+        - Docker:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I understand that security issues must be reported privately via `SECURITY.md`.
+          required: true

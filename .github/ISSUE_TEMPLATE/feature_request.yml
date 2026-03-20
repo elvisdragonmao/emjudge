@@ -1,0 +1,58 @@
+name: Feature request
+description: Suggest an improvement for assignments, grading, management workflows, or developer experience.
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea.
+
+        Please describe the problem first so proposed solutions stay grounded in real workflow needs.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - apps/web
+        - apps/api
+        - apps/worker
+        - packages/shared
+        - packages/config
+        - docker / infrastructure
+        - docs / repository meta
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What workflow is blocked, slow, or missing today?
+      placeholder: Describe the user need, pain point, or limitation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      placeholder: Describe the change you would like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: Any workarounds or alternate approaches you considered.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      placeholder: Mockups, screenshots, API ideas, or related issues.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true

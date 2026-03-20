@@ -34,6 +34,7 @@
 		"zod": "^3.25.67"
 	},
 	"devDependencies": {
+		"@catppuccin/tailwindcss": "^1.0.0",
 		"@judge/config": "workspace:*",
 		"@tailwindcss/vite": "^4.1.11",
 		"@types/react": "^19.1.8",
