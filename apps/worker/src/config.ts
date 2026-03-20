@@ -17,7 +17,10 @@ const EnvSchema = z.object({
 
   WORKER_ID: z.string().default(`worker-${process.pid}`),
   POLL_INTERVAL_MS: z.coerce.number().default(3000),
-  WORK_DIR: z.string().default("/tmp/judge-work"),
+  WORK_DIR: z
+    .string()
+    .default(".cache/judge-work")
+    .transform((value) => path.resolve(value)),
   JUDGE_PNPM_STORE_DIR: z
     .string()
     .default(".cache/judge-pnpm-store")
