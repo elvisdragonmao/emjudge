@@ -27,16 +27,12 @@ import { stripSharedSubmissionRoot } from "./submission-paths.js";
  */
 export class ReactPipeline implements JudgePipeline {
   async execute(ctx: JudgeContext): Promise<JudgeResult> {
-    const { workDir, submissionId, spec } = ctx;
+    const { workDir, submissionId, spec, appendLog } = ctx;
     const projectDir = path.join(workDir, "project");
     const testDir = path.join(workDir, "tests");
     const artifactsDir = path.join(workDir, "artifacts");
     const reactWebServerCommand = [
-      "mkdir -p /work/artifacts",
       "cd project",
-      "set -o pipefail",
-      "if [ -f package-lock.json ]; then npm ci; else npm install; fi 2>&1 | tee /work/artifacts/react-install.log",
-      "npm run build 2>&1 | tee /work/artifacts/react-build.log",
       "if [ -d dist ]; then OUTPUT_DIR=dist; elif [ -d build ]; then OUTPUT_DIR=build; else echo 'No dist/ or build/ directory found after build' >&2; exit 1; fi",
       'npx serve -s "$OUTPUT_DIR" -l 3000',
     ].join(" && ");
@@ -52,6 +48,7 @@ export class ReactPipeline implements JudgePipeline {
     // For now, we assume it exists there.
 
     // 2. Download student files — only allowed paths
+    await appendLog("📥 Downloading submission files from MinIO");
     const files = await queryMany<{
       path: string;
       minio_key: string;
@@ -59,6 +56,7 @@ export class ReactPipeline implements JudgePipeline {
       "SELECT path, minio_key FROM submission_files WHERE submission_id = $1",
       [submissionId],
     );
+    let downloadedCount = 0;
 
     for (const file of stripSharedSubmissionRoot(files)) {
       const normalizedPath = normalizeSubmissionPath(file.path);
@@ -79,9 +77,13 @@ export class ReactPipeline implements JudgePipeline {
       const dest = path.join(projectDir, normalizedPath);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       await downloadFile(MINIO_BUCKETS.SUBMISSIONS, file.minio_key, dest);
+      downloadedCount += 1;
     }
 
+    await appendLog(`📥 Downloaded ${downloadedCount} submission files`);
+
     // 3. Write test file
+    await appendLog("📝 Preparing Playwright tests");
     if (spec.testContent) {
       fs.writeFileSync(
         path.join(testDir, "judge.spec.ts"),
@@ -120,23 +122,65 @@ export default defineConfig({
       "utf-8",
     );
 
-    // 5. Run in Docker
-    const log = await this.runInDocker(workDir, totalTimeoutMs, submissionId);
+    // 5. Install, build, then test in Docker
+    await appendLog("🗃️ Installing dependencies with npm");
+    const installLog = await this.runDockerCommand(
+      workDir,
+      totalTimeoutMs,
+      submissionId,
+      appendLog,
+      'bash -lc "mkdir -p /work/artifacts && cd project && set -o pipefail && if [ -f package-lock.json ]; then npm ci; else npm install; fi 2>&1 | tee /work/artifacts/react-install.log"',
+    );
+    await appendLog("✅ Dependencies installed");
+
+    await appendLog("🏗️ Building project with npm run build");
+    const buildLog = await this.runDockerCommand(
+      workDir,
+      totalTimeoutMs,
+      submissionId,
+      appendLog,
+      'bash -lc "mkdir -p /work/artifacts && cd project && set -o pipefail && npm run build 2>&1 | tee /work/artifacts/react-build.log"',
+    );
+    await appendLog("✅ Project build finished");
+
+    await appendLog("🧪 Starting preview server and Playwright tests");
+    const testLog = await this.runDockerCommand(
+      workDir,
+      totalTimeoutMs,
+      submissionId,
+      appendLog,
+      "npx playwright test",
+    );
+
+    const log = [
+      "[Install]",
+      installLog.trim(),
+      "",
+      "[Build]",
+      buildLog.trim(),
+      "",
+      "[Test]",
+      testLog.trim(),
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     // 6. Parse results (same as HTML/CSS/JS)
-    return this.parseResults(workDir, log, artifactsDir);
+    return this.parseResults(workDir, log, artifactsDir, true);
   }
 
-  private runInDocker(
+  private runDockerCommand(
     workDir: string,
     timeoutMs: number,
     submissionId: string,
+    appendLog: (message: string) => Promise<void>,
+    command: string,
   ): Promise<string> {
     return new Promise((resolve, reject) => {
       const args = [
         "run",
         "--rm",
-        "--network=host", // React needs npm install, so network is needed for build phase
+        "--network=host",
         "--memory=1g",
         "--cpus=2",
         `--stop-timeout=${Math.ceil(timeoutMs / 1000)}`,
@@ -149,7 +193,7 @@ export default defineConfig({
         config.JUDGE_IMAGE,
         "sh",
         "-c",
-        "npx playwright test",
+        command,
       ];
 
       const child = spawn(config.DOCKER_BIN, args, {
@@ -158,6 +202,37 @@ export default defineConfig({
 
       let timedOut = false;
       let output = "";
+      let logBuffer = "";
+      let flushPromise = Promise.resolve();
+      let flushTimer: NodeJS.Timeout | null = null;
+
+      const flushBufferedLog = (force = false) => {
+        if (!force && logBuffer.length < 400) {
+          return flushPromise;
+        }
+
+        if (!logBuffer) {
+          return flushPromise;
+        }
+
+        const chunk = logBuffer;
+        logBuffer = "";
+        flushPromise = flushPromise.then(() => appendLog(chunk.trimEnd()));
+        return flushPromise;
+      };
+
+      const queueLogChunk = (text: string) => {
+        logBuffer += text;
+
+        if (!flushTimer) {
+          flushTimer = setTimeout(() => {
+            flushTimer = null;
+            void flushBufferedLog(true);
+          }, 1000);
+        }
+
+        void flushBufferedLog(false);
+      };
 
       const timer = setTimeout(() => {
         timedOut = true;
@@ -168,21 +243,31 @@ export default defineConfig({
         const text = chunk.toString();
         output += text;
         process.stdout.write(`[judge:${submissionId}] ${text}`);
+        queueLogChunk(text);
       });
 
       child.stderr.on("data", (chunk: Buffer) => {
         const text = chunk.toString();
         output += text;
         process.stderr.write(`[judge:${submissionId}] ${text}`);
+        queueLogChunk(text);
       });
 
       child.on("error", (err) => {
+        if (flushTimer) {
+          clearTimeout(flushTimer);
+        }
         clearTimeout(timer);
-        reject(err);
+        flushBufferedLog(true).finally(() => reject(err));
       });
 
-      child.on("close", (code) => {
+      child.on("close", async (code) => {
+        if (flushTimer) {
+          clearTimeout(flushTimer);
+        }
         clearTimeout(timer);
+        await flushBufferedLog(true);
+        await flushPromise;
 
         if (timedOut) {
           reject(
@@ -207,6 +292,7 @@ export default defineConfig({
     workDir: string,
     log: string,
     artifactsDir: string,
+    logAlreadyStreamed = false,
   ): JudgeResult {
     const artifacts: JudgeResult["artifacts"] = [];
 
@@ -285,6 +371,6 @@ export default defineConfig({
       maxScore = 100;
     }
 
-    return { score, maxScore, testResults, log, artifacts };
+    return { score, maxScore, testResults, log, artifacts, logAlreadyStreamed };
   }
 }

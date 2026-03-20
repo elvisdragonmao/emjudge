@@ -45,7 +45,11 @@ const AdminPage = lazy(() =>
 );
 
 function PageFallback() {
-  return <p className="text-muted-foreground">載入中...</p>;
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <p className="text-muted-foreground">載入中...</p>
+    </div>
+  );
 }
 
 export function App() {

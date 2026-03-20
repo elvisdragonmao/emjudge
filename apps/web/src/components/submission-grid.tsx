@@ -2,36 +2,13 @@ import type { SubmissionSummary } from "@judge/shared";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router";
+import {
+  getSubmissionStatusLabel,
+  getSubmissionStatusVariant,
+} from "@/lib/submission-status";
 
 interface SubmissionGridProps {
   submissions: SubmissionSummary[];
-}
-
-function statusVariant(status: string) {
-  switch (status) {
-    case "completed":
-      return "success" as const;
-    case "failed":
-    case "error":
-      return "destructive" as const;
-    case "running":
-    case "queued":
-      return "warning" as const;
-    default:
-      return "secondary" as const;
-  }
-}
-
-function statusLabel(status: string) {
-  const map: Record<string, string> = {
-    pending: "等待中",
-    queued: "排隊中",
-    running: "評測中",
-    completed: "完成",
-    failed: "失敗",
-    error: "錯誤",
-  };
-  return map[status] ?? status;
 }
 
 export function SubmissionGrid({ submissions }: SubmissionGridProps) {
@@ -57,8 +34,8 @@ export function SubmissionGrid({ submissions }: SubmissionGridProps) {
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{sub.displayName}</span>
-                <Badge variant={statusVariant(sub.status)}>
-                  {statusLabel(sub.status)}
+                <Badge variant={getSubmissionStatusVariant(sub.status)}>
+                  {getSubmissionStatusLabel(sub.status)}
                 </Badge>
               </div>
               {sub.score !== null && (
@@ -97,8 +74,8 @@ export function SubmissionList({ submissions }: SubmissionGridProps) {
                   {sub.score} / {sub.maxScore}
                 </span>
               )}
-              <Badge variant={statusVariant(sub.status)}>
-                {statusLabel(sub.status)}
+              <Badge variant={getSubmissionStatusVariant(sub.status)}>
+                {getSubmissionStatusLabel(sub.status)}
               </Badge>
               <span className="text-xs text-muted-foreground">
                 {new Date(sub.createdAt).toLocaleString("zh-TW")}

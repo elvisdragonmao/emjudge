@@ -19,7 +19,7 @@ export class HtmlCssJsPipeline implements JudgePipeline {
   }
 
   async execute(ctx: JudgeContext): Promise<JudgeResult> {
-    const { workDir, submissionId, spec } = ctx;
+    const { workDir, submissionId, spec, appendLog } = ctx;
     const siteDir = path.join(workDir, "site");
     const testDir = path.join(workDir, "tests");
     const artifactsDir = path.join(workDir, "artifacts");
@@ -33,6 +33,7 @@ export class HtmlCssJsPipeline implements JudgePipeline {
     fs.chmodSync(artifactsDir, 0o777);
 
     // 1. Download submission files
+    await appendLog("Downloading submission files from MinIO");
     this.log(submissionId, "Downloading submission files from MinIO...");
     const files = await queryMany<{
       path: string;
@@ -49,7 +50,10 @@ export class HtmlCssJsPipeline implements JudgePipeline {
       this.log(submissionId, `  Downloaded: ${file.path}`);
     }
 
+    await appendLog(`Downloaded ${files.length} submission files`);
+
     // 2. Write test file
+    await appendLog("Preparing Playwright tests");
     if (spec.testContent) {
       fs.writeFileSync(
         path.join(testDir, "judge.spec.ts"),
@@ -99,6 +103,7 @@ export default defineConfig({
     );
 
     // 4. Run in Docker rootless
+    await appendLog("Starting Docker judge environment");
     this.log(
       submissionId,
       `Running in Docker (timeout: ${spec.timeoutMs}ms)...`,
