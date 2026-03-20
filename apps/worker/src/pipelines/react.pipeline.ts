@@ -30,6 +30,14 @@ export class ReactPipeline implements JudgePipeline {
     const projectDir = path.join(workDir, "project");
     const testDir = path.join(workDir, "tests");
     const artifactsDir = path.join(workDir, "artifacts");
+    const reactWebServerCommand = [
+      "mkdir -p /work/artifacts",
+      "cd project",
+      "set -o pipefail",
+      "if [ -f package-lock.json ]; then npm ci; else npm install; fi 2>&1 | tee /work/artifacts/react-install.log",
+      "npm run build 2>&1 | tee /work/artifacts/react-build.log",
+      "npx serve -s build -l 3000",
+    ].join(" && ");
 
     fs.mkdirSync(projectDir, { recursive: true });
     fs.mkdirSync(testDir, { recursive: true });
@@ -97,10 +105,12 @@ export default defineConfig({
     screenshot: 'on',
   },
   webServer: {
-    command: 'cd project && npm install && npm run build && npx serve -s build -l 3000',
+    command: ${JSON.stringify(`bash -lc ${JSON.stringify(reactWebServerCommand)}`)},
     port: 3000,
     reuseExistingServer: false,
     timeout: ${totalTimeoutMs},
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
   reporter: [['json', { outputFile: 'artifacts/results.json' }]],
 });
@@ -137,7 +147,7 @@ export default defineConfig({
         config.JUDGE_IMAGE,
         "sh",
         "-c",
-        "npx playwright test --reporter=json",
+        "npx playwright test",
       ];
 
       const child = spawn(config.DOCKER_BIN, args, {
@@ -237,6 +247,27 @@ export default defineConfig({
                 : spec.tests?.[0]?.results?.[0]?.error?.message,
               score: passed ? 10 : 0,
             });
+          }
+        }
+
+        if (testResults.length === 0) {
+          const errorMessages = (raw.errors ?? [])
+            .map(
+              (error: { message?: string; stack?: string }) =>
+                error.message ?? error.stack,
+            )
+            .filter(Boolean);
+
+          if (errorMessages.length > 0) {
+            testResults = [
+              {
+                name: "Overall",
+                passed: false,
+                message: errorMessages.join("\n\n"),
+                score: 0,
+              },
+            ];
+            maxScore = 100;
           }
         }
       } catch {
