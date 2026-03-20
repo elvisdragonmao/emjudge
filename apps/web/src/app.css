@@ -2,182 +2,182 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #ffffff;
-  --color-foreground: #0a0a0a;
-  --color-muted: #f5f5f5;
-  --color-muted-foreground: #737373;
-  --color-border: #e5e5e5;
-  --color-primary: #171717;
-  --color-primary-foreground: #fafafa;
-  --color-secondary: #f5f5f5;
-  --color-secondary-foreground: #171717;
-  --color-accent: #f5f5f5;
-  --color-accent-foreground: #171717;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #fafafa;
-  --color-ring: #171717;
-  --color-card: #ffffff;
-  --color-card-foreground: #0a0a0a;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #0a0a0a;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
+	--color-background: #ffffff;
+	--color-foreground: #0a0a0a;
+	--color-muted: #f5f5f5;
+	--color-muted-foreground: #737373;
+	--color-border: #e5e5e5;
+	--color-primary: #171717;
+	--color-primary-foreground: #fafafa;
+	--color-secondary: #f5f5f5;
+	--color-secondary-foreground: #171717;
+	--color-accent: #f5f5f5;
+	--color-accent-foreground: #171717;
+	--color-destructive: #ef4444;
+	--color-destructive-foreground: #fafafa;
+	--color-ring: #171717;
+	--color-card: #ffffff;
+	--color-card-foreground: #0a0a0a;
+	--color-popover: #ffffff;
+	--color-popover-foreground: #0a0a0a;
+	--radius-sm: 0.25rem;
+	--radius-md: 0.375rem;
+	--radius-lg: 0.5rem;
 }
 
 :root {
-  color-scheme: light;
+	color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-  color-scheme: dark;
-  --color-background: #0b0f12;
-  --color-foreground: #f5f7fa;
-  --color-muted: #11161a;
-  --color-muted-foreground: #a4abb2;
-  --color-border: #20262b;
-  --color-primary: #f0f2f4;
-  --color-primary-foreground: #11161a;
-  --color-secondary: #1a2024;
-  --color-secondary-foreground: #e6e8ea;
-  --color-accent: #1a2024;
-  --color-accent-foreground: #e6e8ea;
-  --color-destructive: #f87171;
-  --color-destructive-foreground: #1a0f10;
-  --color-ring: #cfd6dd;
-  --color-card: #0f1316;
-  --color-card-foreground: #f5f7fa;
-  --color-popover: #0f1316;
-  --color-popover-foreground: #f5f7fa;
+	color-scheme: dark;
+	--color-background: #0b0f12;
+	--color-foreground: #f5f7fa;
+	--color-muted: #11161a;
+	--color-muted-foreground: #a4abb2;
+	--color-border: #20262b;
+	--color-primary: #f0f2f4;
+	--color-primary-foreground: #11161a;
+	--color-secondary: #1a2024;
+	--color-secondary-foreground: #e6e8ea;
+	--color-accent: #1a2024;
+	--color-accent-foreground: #e6e8ea;
+	--color-destructive: #f87171;
+	--color-destructive-foreground: #1a0f10;
+	--color-ring: #cfd6dd;
+	--color-card: #0f1316;
+	--color-card-foreground: #f5f7fa;
+	--color-popover: #0f1316;
+	--color-popover-foreground: #f5f7fa;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    color-scheme: dark;
-    --color-background: #0b0f12;
-    --color-foreground: #f5f7fa;
-    --color-muted: #11161a;
-    --color-muted-foreground: #a4abb2;
-    --color-border: #20262b;
-    --color-primary: #f0f2f4;
-    --color-primary-foreground: #11161a;
-    --color-secondary: #1a2024;
-    --color-secondary-foreground: #e6e8ea;
-    --color-accent: #1a2024;
-    --color-accent-foreground: #e6e8ea;
-    --color-destructive: #f87171;
-    --color-destructive-foreground: #1a0f10;
-    --color-ring: #cfd6dd;
-    --color-card: #0f1316;
-    --color-card-foreground: #f5f7fa;
-    --color-popover: #0f1316;
-    --color-popover-foreground: #f5f7fa;
-  }
+	:root:not([data-theme]) {
+		color-scheme: dark;
+		--color-background: #0b0f12;
+		--color-foreground: #f5f7fa;
+		--color-muted: #11161a;
+		--color-muted-foreground: #a4abb2;
+		--color-border: #20262b;
+		--color-primary: #f0f2f4;
+		--color-primary-foreground: #11161a;
+		--color-secondary: #1a2024;
+		--color-secondary-foreground: #e6e8ea;
+		--color-accent: #1a2024;
+		--color-accent-foreground: #e6e8ea;
+		--color-destructive: #f87171;
+		--color-destructive-foreground: #1a0f10;
+		--color-ring: #cfd6dd;
+		--color-card: #0f1316;
+		--color-card-foreground: #f5f7fa;
+		--color-popover: #0f1316;
+		--color-popover-foreground: #f5f7fa;
+	}
 }
 
 body {
-  font-family: "Space Grotesk", "Noto Sans TC", "Segoe UI", sans-serif;
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+	font-family: "Space Grotesk", "Noto Sans TC", "Segoe UI", sans-serif;
+	background-color: var(--color-background);
+	color: var(--color-foreground);
 }
 
 @keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+	from {
+		opacity: 0;
+		transform: translateY(14px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 .animate-fade-up {
-  animation: fade-up 0.8s ease both;
+	animation: fade-up 0.8s ease both;
 }
 
 .delay-1 {
-  animation-delay: 0.12s;
+	animation-delay: 0.12s;
 }
 
 .delay-2 {
-  animation-delay: 0.24s;
+	animation-delay: 0.24s;
 }
 
 .delay-3 {
-  animation-delay: 0.36s;
+	animation-delay: 0.36s;
 }
 
 /* Markdown content styling */
 .markdown-content h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
+	font-size: 1.5rem;
+	font-weight: 700;
+	margin-top: 1.5rem;
+	margin-bottom: 0.75rem;
 }
 .markdown-content h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
+	font-size: 1.25rem;
+	font-weight: 600;
+	margin-top: 1.25rem;
+	margin-bottom: 0.5rem;
 }
 .markdown-content h3 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
+	font-size: 1.125rem;
+	font-weight: 600;
+	margin-top: 1rem;
+	margin-bottom: 0.5rem;
 }
 .markdown-content p {
-  margin-bottom: 0.75rem;
-  line-height: 1.7;
+	margin-bottom: 0.75rem;
+	line-height: 1.7;
 }
 .markdown-content ul,
 .markdown-content ol {
-  margin-bottom: 0.75rem;
-  padding-left: 1.5rem;
+	margin-bottom: 0.75rem;
+	padding-left: 1.5rem;
 }
 .markdown-content li {
-  margin-bottom: 0.25rem;
+	margin-bottom: 0.25rem;
 }
 .markdown-content code {
-  background: var(--color-muted);
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
+	background: var(--color-muted);
+	padding: 0.125rem 0.375rem;
+	border-radius: 0.25rem;
+	font-size: 0.875rem;
 }
 .markdown-content pre {
-  background: var(--color-muted);
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin-bottom: 1rem;
+	background: var(--color-muted);
+	padding: 1rem;
+	border-radius: 0.5rem;
+	overflow-x: auto;
+	margin-bottom: 1rem;
 }
 .markdown-content pre code {
-  background: none;
-  padding: 0;
+	background: none;
+	padding: 0;
 }
 .markdown-content blockquote {
-  border-left: 3px solid var(--color-border);
-  padding-left: 1rem;
-  color: var(--color-muted-foreground);
-  margin-bottom: 0.75rem;
+	border-left: 3px solid var(--color-border);
+	padding-left: 1rem;
+	color: var(--color-muted-foreground);
+	margin-bottom: 0.75rem;
 }
 .markdown-content table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 1rem;
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 1rem;
 }
 .markdown-content th,
 .markdown-content td {
-  border: 1px solid var(--color-border);
-  padding: 0.5rem;
-  text-align: left;
+	border: 1px solid var(--color-border);
+	padding: 0.5rem;
+	text-align: left;
 }
 .markdown-content th {
-  background: var(--color-muted);
-  font-weight: 600;
+	background: var(--color-muted);
+	font-weight: 600;
 }
 .markdown-content img {
-  max-width: 100%;
-  border-radius: 0.5rem;
+	max-width: 100%;
+	border-radius: 0.5rem;
 }

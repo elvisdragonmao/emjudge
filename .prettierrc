@@ -1,0 +1,28 @@
+{
+	"printWidth": 200,
+	"tabWidth": 2,
+	"useTabs": true,
+	"semi": true,
+	"singleQuote": false,
+	"trailingComma": "none",
+	"bracketSpacing": true,
+	"arrowParens": "avoid",
+	"requirePragma": false,
+	"insertPragma": false,
+	"proseWrap": "never",
+	"endOfLine": "lf",
+	"htmlWhitespaceSensitivity": "ignore",
+	"embeddedLanguageFormatting": "auto",
+	"quoteProps": "as-needed",
+	"jsxSingleQuote": false,
+	"singleAttributePerLine": false,
+	"plugins": ["prettier-plugin-organize-imports", "prettier-plugin-packagejson"],
+	"overrides": [
+		{
+			"files": "*.astro",
+			"options": {
+				"parser": "astro"
+			}
+		}
+	]
+}

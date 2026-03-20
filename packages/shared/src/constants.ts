@@ -7,25 +7,11 @@ export const ASSIGNMENT_TYPES = ["html-css-js", "react"] as const;
 export type AssignmentType = (typeof ASSIGNMENT_TYPES)[number];
 
 // ─── Submission status ───────────────────────────────────
-export const SUBMISSION_STATUSES = [
-  "pending",
-  "queued",
-  "running",
-  "completed",
-  "failed",
-  "error",
-] as const;
+export const SUBMISSION_STATUSES = ["pending", "queued", "running", "completed", "failed", "error"] as const;
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number];
 
 // ─── Judge job status ────────────────────────────────────
-export const JUDGE_JOB_STATUSES = [
-  "pending",
-  "locked",
-  "running",
-  "completed",
-  "failed",
-  "dead",
-] as const;
+export const JUDGE_JOB_STATUSES = ["pending", "locked", "running", "completed", "failed", "dead"] as const;
 export type JudgeJobStatus = (typeof JUDGE_JOB_STATUSES)[number];
 
 // ─── Limits ──────────────────────────────────────────────
@@ -36,6 +22,6 @@ export const JUDGE_MAX_ATTEMPTS = 3;
 
 // ─── MinIO paths ─────────────────────────────────────────
 export const MINIO_BUCKETS = {
-  SUBMISSIONS: "submissions",
-  ARTIFACTS: "artifacts",
+	SUBMISSIONS: "submissions",
+	ARTIFACTS: "artifacts"
 } as const;
