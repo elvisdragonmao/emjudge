@@ -37,7 +37,8 @@ export class ReactPipeline implements JudgePipeline {
       "set -o pipefail",
       "if [ -f package-lock.json ]; then npm ci; else npm install; fi 2>&1 | tee /work/artifacts/react-install.log",
       "npm run build 2>&1 | tee /work/artifacts/react-build.log",
-      "npx serve -s build -l 3000",
+      "if [ -d dist ]; then OUTPUT_DIR=dist; elif [ -d build ]; then OUTPUT_DIR=build; else echo 'No dist/ or build/ directory found after build' >&2; exit 1; fi",
+      'npx serve -s "$OUTPUT_DIR" -l 3000',
     ].join(" && ");
 
     fs.mkdirSync(projectDir, { recursive: true });
