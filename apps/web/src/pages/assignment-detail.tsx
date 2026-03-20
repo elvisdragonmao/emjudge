@@ -150,7 +150,7 @@ export function AssignmentDetailPage() {
 					</CardHeader>
 					<CardContent>
 						<FileUploader onUpload={handleUpload} isLoading={submitMutation.isPending} />
-						{submitMutation.isSuccess && <p className="mt-3 text-sm text-green-600">{t("pages.assignmentDetail.submitSuccess")}</p>}
+						{submitMutation.isSuccess && <p className="mt-3 text-sm text-[var(--color-success)]">{t("pages.assignmentDetail.submitSuccess")}</p>}
 						{submitErrorMessage && <p className="mt-3 text-sm text-destructive">{submitErrorMessage}</p>}
 					</CardContent>
 				</Card>

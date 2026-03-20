@@ -27,7 +27,7 @@ export function HomePage() {
 	return (
 		<div className="relative">
 			<PageTitle title={t("pages.home.title")} />
-			<div className="pointer-events-none absolute left-1/2 top-[-260px] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(30,64,175,0.25),transparent_70%)] blur-2xl" />
+			<div className="pointer-events-none absolute left-1/2 top-[-260px] h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,color-mix(in_srgb,var(--color-primary)_26%,transparent),transparent_70%)] blur-2xl" />
 
 			<section className="mx-auto flex max-w-5xl flex-col items-center gap-6 py-20 text-center">
 				<div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm">
@@ -66,7 +66,7 @@ export function HomePage() {
 					<div key={item.title} className="group rounded-2xl border border-border bg-card p-6 shadow-sm transition-transform duration-300">
 						<h3 className="text-lg font-semibold">{item.title}</h3>
 						<p className="mt-2 text-sm text-muted-foreground">{item.desc}</p>
-						<div className="mt-6 h-1 w-12 rounded-full bg-gradient-to-r from-emerald-400/70 to-blue-500/70 opacity-80" />
+						<div className="mt-6 h-1 w-12 rounded-full bg-gradient-to-r from-ctp-teal/80 to-ctp-lavender/80 opacity-80" />
 					</div>
 				))}
 			</section>

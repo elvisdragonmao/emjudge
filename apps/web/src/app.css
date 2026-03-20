@@ -1,25 +1,34 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
+@import "@catppuccin/tailwindcss/mocha.css";
 
 @theme {
-	--color-background: #ffffff;
-	--color-foreground: #0a0a0a;
-	--color-muted: #f5f5f5;
-	--color-muted-foreground: #737373;
-	--color-border: #e5e5e5;
-	--color-primary: #171717;
-	--color-primary-foreground: #fafafa;
-	--color-secondary: #f5f5f5;
-	--color-secondary-foreground: #171717;
-	--color-accent: #f5f5f5;
-	--color-accent-foreground: #171717;
-	--color-destructive: #ef4444;
-	--color-destructive-foreground: #fafafa;
-	--color-ring: #171717;
-	--color-card: #ffffff;
-	--color-card-foreground: #0a0a0a;
-	--color-popover: #ffffff;
-	--color-popover-foreground: #0a0a0a;
+	--color-background: var(--catppuccin-color-base);
+	--color-foreground: var(--catppuccin-color-text);
+	--color-muted: var(--catppuccin-color-mantle);
+	--color-muted-foreground: var(--catppuccin-color-subtext0);
+	--color-border: var(--catppuccin-color-surface0);
+	--color-primary: var(--catppuccin-color-blue);
+	--color-primary-foreground: var(--catppuccin-color-crust);
+	--color-secondary: var(--catppuccin-color-surface0);
+	--color-secondary-foreground: var(--catppuccin-color-text);
+	--color-accent: var(--catppuccin-color-surface1);
+	--color-accent-foreground: var(--catppuccin-color-text);
+	--color-destructive: var(--catppuccin-color-red);
+	--color-destructive-foreground: var(--catppuccin-color-crust);
+	--color-ring: var(--catppuccin-color-lavender);
+	--color-card: color-mix(in srgb, var(--catppuccin-color-mantle) 78%, var(--catppuccin-color-base));
+	--color-card-foreground: var(--catppuccin-color-text);
+	--color-popover: color-mix(in srgb, var(--catppuccin-color-mantle) 86%, var(--catppuccin-color-base));
+	--color-popover-foreground: var(--catppuccin-color-text);
+	--color-success: var(--catppuccin-color-green);
+	--color-success-foreground: var(--catppuccin-color-crust);
+	--color-info: var(--catppuccin-color-sky);
+	--color-info-foreground: var(--catppuccin-color-crust);
+	--color-warning: var(--catppuccin-color-yellow);
+	--color-warning-foreground: var(--catppuccin-color-crust);
+	--color-running: var(--catppuccin-color-peach);
+	--color-running-foreground: var(--catppuccin-color-crust);
 	--radius-sm: 0.25rem;
 	--radius-md: 0.375rem;
 	--radius-lg: 0.5rem;
@@ -29,55 +38,21 @@
 	color-scheme: light;
 }
 
-:root[data-theme="dark"] {
+:root.mocha {
 	color-scheme: dark;
-	--color-background: #0b0f12;
-	--color-foreground: #f5f7fa;
-	--color-muted: #11161a;
-	--color-muted-foreground: #a4abb2;
-	--color-border: #20262b;
-	--color-primary: #f0f2f4;
-	--color-primary-foreground: #11161a;
-	--color-secondary: #1a2024;
-	--color-secondary-foreground: #e6e8ea;
-	--color-accent: #1a2024;
-	--color-accent-foreground: #e6e8ea;
-	--color-destructive: #f87171;
-	--color-destructive-foreground: #1a0f10;
-	--color-ring: #cfd6dd;
-	--color-card: #0f1316;
-	--color-card-foreground: #f5f7fa;
-	--color-popover: #0f1316;
-	--color-popover-foreground: #f5f7fa;
 }
 
 @media (prefers-color-scheme: dark) {
-	:root:not([data-theme]) {
+	:root:not(.latte):not(.mocha) {
 		color-scheme: dark;
-		--color-background: #0b0f12;
-		--color-foreground: #f5f7fa;
-		--color-muted: #11161a;
-		--color-muted-foreground: #a4abb2;
-		--color-border: #20262b;
-		--color-primary: #f0f2f4;
-		--color-primary-foreground: #11161a;
-		--color-secondary: #1a2024;
-		--color-secondary-foreground: #e6e8ea;
-		--color-accent: #1a2024;
-		--color-accent-foreground: #e6e8ea;
-		--color-destructive: #f87171;
-		--color-destructive-foreground: #1a0f10;
-		--color-ring: #cfd6dd;
-		--color-card: #0f1316;
-		--color-card-foreground: #f5f7fa;
-		--color-popover: #0f1316;
-		--color-popover-foreground: #f5f7fa;
 	}
 }
 
 body {
 	font-family: "Space Grotesk", "Noto Sans TC", "Segoe UI", sans-serif;
-	background-color: var(--color-background);
+	background:
+		radial-gradient(circle at top, color-mix(in srgb, var(--catppuccin-color-blue) 12%, transparent) 0%, transparent 42%),
+		radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--catppuccin-color-mauve) 10%, transparent) 0%, transparent 35%), var(--color-background);
 	color: var(--color-foreground);
 }
 

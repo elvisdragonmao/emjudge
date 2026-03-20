@@ -8,10 +8,10 @@ const badgeVariants = cva("inline-flex items-center rounded-md border px-2.5 py-
 			secondary: "border-transparent bg-secondary text-secondary-foreground",
 			destructive: "border-transparent bg-destructive text-destructive-foreground",
 			outline: "text-foreground",
-			success: "border-transparent bg-green-100 text-green-800",
-			info: "border-transparent bg-sky-100 text-sky-800",
-			warning: "border-transparent bg-yellow-100 text-yellow-800",
-			running: "border-transparent bg-amber-100 text-amber-900"
+			success: "border-transparent bg-[var(--color-success)] text-[var(--color-success-foreground)]",
+			info: "border-transparent bg-[var(--color-info)] text-[var(--color-info-foreground)]",
+			warning: "border-transparent bg-[var(--color-warning)] text-[var(--color-warning-foreground)]",
+			running: "border-transparent bg-[var(--color-running)] text-[var(--color-running-foreground)]"
 		}
 	},
 	defaultVariants: {
