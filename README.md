@@ -123,7 +123,7 @@ docker build -t judge-runner:latest docker/judge-runner/
 | `MINIO_PUBLIC_BASE_URL`            | MinIO 對外 base path           | `/img`                                                |
 | `WORKER_ID`                        | Worker 識別名稱                | `worker-<pid>`                                        |
 | `POLL_INTERVAL_MS`                 | Worker 輪詢間隔（ms）          | `3000`                                                |
-| `WORK_DIR`                         | Worker 工作目錄                | `/tmp/judge-work`                                     |
+| `WORK_DIR`                         | Worker 工作目錄                | `.cache/judge-work`                                   |
 | `JUDGE_PNPM_STORE_DIR`             | React 評測共用 pnpm cache 目錄 | `.cache/judge-pnpm-store`                             |
 | `JUDGE_PNPM_STORE_MOUNT_PATH`      | 容器內 pnpm store 掛載位置     | `/pnpm/store`                                         |
 | `JUDGE_PNPM_STORE_CLEANUP_HOUR_TW` | 每日清 cache 時間（UTC+8）     | `5`                                                   |
