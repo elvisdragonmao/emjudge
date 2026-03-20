@@ -22,16 +22,26 @@ export async function submissionRoutes(app: FastifyInstance) {
       // Parse multipart files
       const parts = request.parts();
       const files: Array<{ path: string; buffer: Buffer }> = [];
+      const pendingPaths: string[] = [];
 
       for await (const part of parts) {
         if (part.type === "file") {
-          const normalizedPath = normalizeSubmissionPath(part.filename);
+          const submittedPath = pendingPaths.shift();
+          const normalizedPath = normalizeSubmissionPath(
+            submittedPath ?? part.filename,
+          );
+          const buffer = await part.toBuffer();
+
           if (!normalizedPath || shouldIgnoreUploadPath(normalizedPath)) {
             continue;
           }
 
-          const buffer = await part.toBuffer();
           files.push({ path: normalizedPath, buffer });
+          continue;
+        }
+
+        if (part.fieldname === "path" && typeof part.value === "string") {
+          pendingPaths.push(part.value);
         }
       }
 

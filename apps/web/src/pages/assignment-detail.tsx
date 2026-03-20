@@ -53,7 +53,9 @@ export function AssignmentDetailPage() {
     (files: File[]) => {
       const formData = new FormData();
       for (const file of files) {
-        formData.append("file", file, file.webkitRelativePath || file.name);
+        const relativePath = file.webkitRelativePath || file.name;
+        formData.append("path", relativePath);
+        formData.append("file", file, relativePath);
       }
       submitMutation.mutate(formData);
     },
