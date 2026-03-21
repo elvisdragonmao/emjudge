@@ -44,7 +44,7 @@
 		},
 		"scoreChart": {
 			"title": "Class cumulative score trend",
-			"tooltip": "{{time}}<br/>Class cumulative score: {{value}}<br/>Latest assignment growth: {{assignmentTitle}}"
+			"tooltip": "{{time}}<br/>{{userName}}: {{value}}<br/>Latest assignment growth: {{assignmentTitle}}"
 		},
 		"fileUploader": {
 			"drag": "Drag files here to upload",

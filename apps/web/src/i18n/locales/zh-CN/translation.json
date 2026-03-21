@@ -44,7 +44,7 @@
 		},
 		"scoreChart": {
 			"title": "班级累计分数变化",
-			"tooltip": "{{time}}<br/>班级累计分数：{{value}}<br/>最新增长作业：{{assignmentTitle}}"
+			"tooltip": "{{time}}<br/>{{userName}}：{{value}} 分<br/>最新增长作业：{{assignmentTitle}}"
 		},
 		"fileUploader": {
 			"drag": "拖曳文件到这里上传",

@@ -207,28 +207,33 @@ export async function isUserInClass(userId: string, classId: string) {
 export async function getClassScoreHistory(classId: string) {
 	const rows = await queryMany<{
 		user_id: string;
+		display_name: string;
+		username: string;
 		assignment_id: string;
 		score: number;
 		title: string;
 		created_at: Date;
 	}>(
-		`SELECT s.user_id, s.assignment_id, s.score, a.title, s.created_at
-     FROM submissions s
-     JOIN assignments a ON a.id = s.assignment_id
-     WHERE a.class_id = $1
-       AND s.status = 'completed'
-       AND s.score IS NOT NULL
-     ORDER BY s.created_at ASC, s.id ASC`,
+		`SELECT s.user_id, u.display_name, u.username, s.assignment_id, s.score, a.title, s.created_at
+      FROM submissions s
+      JOIN assignments a ON a.id = s.assignment_id
+		 JOIN users u ON u.id = s.user_id
+      WHERE a.class_id = $1
+        AND s.status = 'completed'
+        AND s.score IS NOT NULL
+      ORDER BY s.created_at ASC, s.id ASC`,
 		[classId]
 	);
 
 	const bestScores = new Map<string, number>();
+	const userTotals = new Map<string, number>();
 	const points: Array<{
+		userId: string;
+		userName: string;
 		date: string;
 		totalScore: number;
 		assignmentTitle: string;
 	}> = [];
-	let totalScore = 0;
 
 	for (const row of rows) {
 		const key = `${row.user_id}:${row.assignment_id}`;
@@ -238,10 +243,13 @@ export async function getClassScoreHistory(classId: string) {
 			continue;
 		}
 
-		totalScore += row.score - previousBest;
+		const totalScore = (userTotals.get(row.user_id) ?? 0) + (row.score - previousBest);
 		bestScores.set(key, row.score);
+		userTotals.set(row.user_id, totalScore);
 
 		points.push({
+			userId: row.user_id,
+			userName: row.display_name || row.username,
 			date: row.created_at.toISOString(),
 			totalScore,
 			assignmentTitle: row.title
