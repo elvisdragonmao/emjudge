@@ -47,10 +47,21 @@ CREATE TABLE IF NOT EXISTS classes (
   name        VARCHAR(100) NOT NULL,
   description TEXT NOT NULL DEFAULT '',
   created_by  UUID NOT NULL REFERENCES users(id),
+  join_code   VARCHAR(12),
+  join_code_enabled BOOLEAN NOT NULL DEFAULT true,
   is_archived BOOLEAN NOT NULL DEFAULT false,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS join_code VARCHAR(12);
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS join_code_enabled BOOLEAN NOT NULL DEFAULT true;
+
+UPDATE classes
+SET join_code = UPPER(SUBSTRING(REPLACE(gen_random_uuid()::text, '-', '') FROM 1 FOR 8))
+WHERE join_code IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_classes_join_code ON classes (join_code) WHERE join_code IS NOT NULL;
 
 -- ─── Class members ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS class_members (

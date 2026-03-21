@@ -2,11 +2,11 @@ import { PageTitle } from "@/components/page-title";
 import { ScoreChart } from "@/components/score-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useAddClassMembers, useAssignments, useClassDetail, useClassScoreHistory, useRemoveClassMember, useUsers } from "@/hooks/use-api";
+import { useAddClassMembers, useAssignments, useClassDetail, useClassScoreHistory, useReissueClassJoinCode, useRemoveClassMember, useUpdateClassJoinCodeSettings, useUsers } from "@/hooks/use-api";
 import { formatDate, i18n } from "@/i18n";
-import { Plus, UserMinus, UserPlus, Users, X } from "@/lib/icons";
+import { Plus, RotateCcw, UserMinus, UserPlus, Users, X } from "@/lib/icons";
 import { useAuth } from "@/stores/auth";
 import { isStaff } from "@judge/shared";
 import { useState } from "react";
@@ -23,9 +23,12 @@ export function ClassDetailPage() {
 
 	const addMembersMutation = useAddClassMembers(id!);
 	const removeMemberMutation = useRemoveClassMember(id!);
+	const updateJoinCodeSettingsMutation = useUpdateClassJoinCodeSettings(id!);
+	const reissueJoinCodeMutation = useReissueClassJoinCode(id!);
 
 	const [showAddMember, setShowAddMember] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [copyMessage, setCopyMessage] = useState("");
 	const { data: allUsers } = useUsers(1);
 
 	if (isLoading) {
@@ -61,6 +64,12 @@ export function ClassDetailPage() {
 		removeMemberMutation.mutate(userId);
 	};
 
+	const handleCopyJoinCode = async () => {
+		if (!cls.joinCode?.code) return;
+		await navigator.clipboard.writeText(cls.joinCode.code);
+		setCopyMessage(t("pages.classDetail.joinCodeCopied"));
+	};
+
 	return (
 		<div className="space-y-6">
 			<PageTitle title={cls.name} />
@@ -84,6 +93,47 @@ export function ClassDetailPage() {
 				<Card>
 					<CardContent className="pt-6">
 						<ScoreChart data={scoreHistory} />
+					</CardContent>
+				</Card>
+			)}
+
+			{user && isStaff(user.role) && cls.joinCode && (
+				<Card>
+					<CardHeader>
+						<CardTitle>{t("pages.classDetail.joinCodeTitle")}</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+							<div>
+								<p className="text-sm font-medium">{cls.joinCode.enabled ? t("pages.classDetail.joinCodeEnabled") : t("pages.classDetail.joinCodeDisabled")}</p>
+								<p className="text-xs text-muted-foreground">{t("pages.classDetail.joinCodeDescription")}</p>
+							</div>
+							<Button
+								size="sm"
+								variant={cls.joinCode.enabled ? "outline" : "default"}
+								disabled={updateJoinCodeSettingsMutation.isPending}
+								onClick={() => updateJoinCodeSettingsMutation.mutate({ joinCodeEnabled: !cls.joinCode?.enabled })}
+							>
+								{cls.joinCode.enabled ? t("pages.classDetail.disableJoinCode") : t("pages.classDetail.enableJoinCode")}
+							</Button>
+						</div>
+
+						<div className="flex flex-col gap-3 rounded-lg border border-border p-4 md:flex-row md:items-center md:justify-between">
+							<div>
+								<p className="text-xs text-muted-foreground">{t("pages.classDetail.joinCodeLabel")}</p>
+								<p className="font-mono text-2xl font-semibold tracking-[0.3em]">{cls.joinCode.code ?? "--------"}</p>
+								{copyMessage && <p className="mt-1 text-xs text-muted-foreground">{copyMessage}</p>}
+							</div>
+							<div className="flex gap-2">
+								<Button size="sm" variant="outline" onClick={handleCopyJoinCode} disabled={!cls.joinCode.code}>
+									{t("pages.classDetail.copyJoinCode")}
+								</Button>
+								<Button size="sm" onClick={() => reissueJoinCodeMutation.mutate()} disabled={reissueJoinCodeMutation.isPending}>
+									<RotateCcw />
+									{t("pages.classDetail.reissueJoinCode")}
+								</Button>
+							</div>
+						</div>
 					</CardContent>
 				</Card>
 			)}

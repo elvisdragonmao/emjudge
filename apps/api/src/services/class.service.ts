@@ -1,4 +1,5 @@
-import { query, queryMany, queryOne } from "../db/pool.js";
+import crypto from "node:crypto";
+import { query, queryMany, queryOne, transaction } from "../db/pool.js";
 
 interface ClassRow {
 	id: string;
@@ -6,6 +7,8 @@ interface ClassRow {
 	description: string;
 	created_by: string;
 	is_archived: boolean;
+	join_code: string | null;
+	join_code_enabled: boolean;
 	created_at: Date;
 	updated_at: Date;
 	member_count?: string;
@@ -21,6 +24,29 @@ function toSummary(row: ClassRow) {
 		assignmentCount: parseInt(row.assignment_count ?? "0", 10),
 		createdAt: row.created_at.toISOString()
 	};
+}
+
+function toJoinCodeInfo(row: ClassRow, includeCode: boolean) {
+	return {
+		enabled: row.join_code_enabled,
+		code: includeCode ? row.join_code : null
+	};
+}
+
+function generateJoinCode() {
+	return crypto.randomBytes(4).toString("hex").toUpperCase();
+}
+
+async function generateUniqueJoinCode() {
+	for (let attempt = 0; attempt < 10; attempt++) {
+		const code = generateJoinCode();
+		const existing = await queryOne<{ id: string }>("SELECT id FROM classes WHERE join_code = $1", [code]);
+		if (!existing) {
+			return code;
+		}
+	}
+
+	throw new Error("Failed to generate unique join code");
 }
 
 export async function listClasses() {
@@ -60,7 +86,7 @@ export async function getClassById(id: string) {
 	);
 }
 
-export async function getClassDetail(id: string) {
+export async function getClassDetail(id: string, includeJoinCode = false) {
 	const cls = await getClassById(id);
 	if (!cls) return null;
 
@@ -81,6 +107,7 @@ export async function getClassDetail(id: string) {
 
 	return {
 		...toSummary(cls),
+		joinCode: toJoinCodeInfo(cls, includeJoinCode),
 		members: members.map(m => ({
 			id: m.id,
 			username: m.username,
@@ -92,15 +119,16 @@ export async function getClassDetail(id: string) {
 }
 
 export async function createClass(name: string, description: string, createdBy: string) {
+	const joinCode = await generateUniqueJoinCode();
 	const row = await queryOne<ClassRow>(
-		`INSERT INTO classes (name, description, created_by)
-     VALUES ($1, $2, $3) RETURNING *`,
-		[name, description, createdBy]
+		`INSERT INTO classes (name, description, created_by, join_code, join_code_enabled)
+     VALUES ($1, $2, $3, $4, true) RETURNING *`,
+		[name, description, createdBy, joinCode]
 	);
 	return row ? toSummary(row) : null;
 }
 
-export async function updateClass(id: string, data: { name?: string; description?: string }) {
+export async function updateClass(id: string, data: { name?: string; description?: string; joinCodeEnabled?: boolean }) {
 	const sets: string[] = [];
 	const params: unknown[] = [];
 	let idx = 1;
@@ -113,6 +141,10 @@ export async function updateClass(id: string, data: { name?: string; description
 		sets.push(`description = $${idx++}`);
 		params.push(data.description);
 	}
+	if (data.joinCodeEnabled !== undefined) {
+		sets.push(`join_code_enabled = $${idx++}`);
+		params.push(data.joinCodeEnabled);
+	}
 
 	if (sets.length === 0) return;
 
@@ -124,6 +156,43 @@ export async function addMembers(classId: string, userIds: string[]) {
 	for (const userId of userIds) {
 		await query(`INSERT INTO class_members (class_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [classId, userId]);
 	}
+}
+
+export async function getJoinCodeSettings(classId: string) {
+	const row = await queryOne<ClassRow>("SELECT * FROM classes WHERE id = $1", [classId]);
+	if (!row) return null;
+	return toJoinCodeInfo(row, true);
+}
+
+export async function reissueJoinCode(classId: string) {
+	const joinCode = await generateUniqueJoinCode();
+	const row = await queryOne<ClassRow>("UPDATE classes SET join_code = $1 WHERE id = $2 RETURNING *", [joinCode, classId]);
+	if (!row) return null;
+	return toJoinCodeInfo(row, true);
+}
+
+export async function joinClassByCode(code: string, userId: string) {
+	return transaction(async client => {
+		const normalizedCode = code.trim().toUpperCase();
+		const classRow = await client.query<ClassRow>("SELECT * FROM classes WHERE join_code = $1 AND is_archived = false", [normalizedCode]);
+		const cls = classRow.rows[0] ?? null;
+
+		if (!cls) {
+			return { type: "not_found" as const };
+		}
+
+		if (!cls.join_code_enabled) {
+			return { type: "disabled" as const, classId: cls.id };
+		}
+
+		const existing = await client.query("SELECT 1 FROM class_members WHERE class_id = $1 AND user_id = $2", [cls.id, userId]);
+		if ((existing.rowCount ?? 0) > 0) {
+			return { type: "already_joined" as const, classId: cls.id };
+		}
+
+		await client.query("INSERT INTO class_members (class_id, user_id) VALUES ($1, $2)", [cls.id, userId]);
+		return { type: "joined" as const, classId: cls.id };
+	});
 }
 
 export async function removeMember(classId: string, userId: string) {
