@@ -4,14 +4,7 @@
   <h1>emjudge</h1>
   <p>Frontend assignment submission and automated grading for HTML, CSS, JavaScript, and React projects.</p>
 
-  <p>
-    <img alt="Node.js 20+" src="https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white" />
-    <img alt="pnpm 10+" src="https://img.shields.io/badge/pnpm-%3E%3D10-F69220?logo=pnpm&logoColor=white" />
-    <img alt="React 19" src="https://img.shields.io/badge/react-19-61DAFB?logo=react&logoColor=061A23" />
-    <img alt="Fastify 5" src="https://img.shields.io/badge/fastify-5-000000?logo=fastify&logoColor=white" />
-    <img alt="Playwright" src="https://img.shields.io/badge/playwright-grading-2EAD33?logo=playwright&logoColor=white" />
-    <img alt="License Apache-2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue" />
-  </p>
+[![Crowdin](https://badges.crowdin.net/emjudge/localized.svg)](https://crowdin.com/project/emjudge) [![GitHub issues](https://img.shields.io/github/issues/elvisdragonmao/emjudge)](https://github.com/elvisdragonmao/emjudge/issues) [![License](https://img.shields.io/github/license/elvisdragonmao/emjudge)](https://github.com/elvisdragonmao/emjudge/blob/main/LICENSE)
 
 ![emjudge demo](apps/web/public/screenshots.webp)
 
