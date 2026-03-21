@@ -151,7 +151,7 @@ If you want to run everything locally with one command, use the root `docker-com
 ## Repository Layout
 
 ```text
-frontend-judge/
+emjudge/
 ├── apps/
 │   ├── api/          # Fastify backend
 │   ├── web/          # React + Vite frontend
