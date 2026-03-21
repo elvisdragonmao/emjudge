@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useCreateAssignment } from "@/hooks/use-api";
+import { getApiErrorMessage } from "@/lib/api";
 import { Code2, Eye, FileCode2, Save, Sparkles, X } from "@/lib/icons";
 import { DEFAULT_REACT_ASSIGNMENT_SPEC } from "@judge/shared";
 import { useCallback, useState } from "react";
@@ -25,6 +26,7 @@ export function AssignmentCreatePage() {
 	const [testContent, setTestContent] = useState("");
 	const [showPreview, setShowPreview] = useState(false);
 	const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+	const [submitMessage, setSubmitMessage] = useState("");
 
 	const handleApplyTemplate = useCallback(
 		(code: string) => {
@@ -46,6 +48,7 @@ export function AssignmentCreatePage() {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		setSubmitMessage("");
 		createMutation.mutate(
 			{
 				classId,
@@ -63,7 +66,8 @@ export function AssignmentCreatePage() {
 				}
 			},
 			{
-				onSuccess: () => navigate(`/classes/${classId}`)
+				onSuccess: () => navigate(`/classes/${classId}`),
+				onError: error => setSubmitMessage(getApiErrorMessage(error, t("pages.assignmentCreate.createFailed")))
 			}
 		);
 	};
@@ -165,6 +169,7 @@ export function AssignmentCreatePage() {
 				</Card>
 
 				<div className="flex justify-end gap-3">
+					{submitMessage && <p className="flex-1 self-center text-sm text-destructive">{submitMessage}</p>}
 					<Button type="button" variant="outline" onClick={() => navigate(-1)}>
 						<X />
 						{t("common.cancel")}

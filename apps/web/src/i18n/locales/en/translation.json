@@ -344,6 +344,7 @@
 			"updateDisplayName": "Update display name",
 			"displayNameUpdated": "Display name updated",
 			"displayNameUpdateFailed": "Update failed",
+			"requestFailed": "Request failed. Please try again later.",
 			"changePassword": "Change password",
 			"currentPassword": "Current password",
 			"newPassword": "New password",
@@ -369,6 +370,8 @@
 			"joinCodeDisabled": "This class has disabled code-based joining",
 			"joinCodeAlreadyJoined": "You have already joined this class",
 			"joinCodeFailed": "Failed to join class. Please try again later.",
+			"createSuccess": "Class created",
+			"createFailed": "Failed to create class. Please try again later.",
 			"namePlaceholder": "Class name",
 			"descriptionPlaceholder": "Description (optional)",
 			"create": "Create",
@@ -397,7 +400,8 @@
 		"assignmentCreate": {
 			"title": "Create assignment",
 			"creating": "Creating...",
-			"submit": "Create assignment"
+			"submit": "Create assignment",
+			"createFailed": "Failed to create assignment. Please try again later."
 		},
 		"assignmentEdit": {
 			"loadingTitle": "Loading assignment",
@@ -409,7 +413,8 @@
 			"deleteRecords": "Delete all current submissions and score records",
 			"deleteHelp": "Choosing delete clears the current submissions, runs, and artifacts for this assignment.",
 			"updating": "Updating...",
-			"submit": "Save changes"
+			"submit": "Save changes",
+			"updateFailed": "Failed to update assignment. Please try again later."
 		},
 		"assignmentDetail": {
 			"loadingTitle": "Loading assignment",
@@ -475,6 +480,9 @@
 			"copyJoinCode": "Copy code",
 			"reissueJoinCode": "Reissue code",
 			"joinCodeCopied": "Class code copied",
+			"reissueJoinCodeSuccess": "Class code reissued",
+			"joinCodeActionFailed": "Failed to update class code settings. Please try again later.",
+			"memberActionFailed": "Failed to update class members. Please try again later.",
 			"newAssignment": "New assignment",
 			"assignmentsTitle": "Assignments",
 			"noAssignments": "No assignments yet",
@@ -514,10 +522,17 @@
 			"bulkImportPlaceholder": "student01,pass123,Alice,student",
 			"import": "Import",
 			"importDone": "Import finished",
+			"importPartial": "Imported with some failures, failed rows",
+			"importFailed": "Bulk import failed. Please try again later.",
 			"userListTitle": "Users ({{count}})",
 			"noClassJoined": "Not in any class",
 			"newPasswordPlaceholder": "New password",
 			"resetPassword": "Reset password",
+			"resetPasswordSuccess": "Password reset",
+			"resetPasswordFailed": "Failed to reset password. Please try again later.",
+			"createUserSuccess": "User created",
+			"createUserFailed": "Failed to create user. Please try again later.",
+			"registrationUpdateFailed": "Failed to update registration settings. Please try again later.",
 			"previousPage": "Previous",
 			"currentPage": "Page {{page}}",
 			"nextPage": "Next",

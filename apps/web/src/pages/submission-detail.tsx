@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRejudgeSubmission, useSubmissionDetail } from "@/hooks/use-api";
 import { useRefetchCountdown } from "@/hooks/use-refetch-countdown";
 import { formatDateTime } from "@/i18n";
-import { api } from "@/lib/api";
+import { api, getApiErrorMessage } from "@/lib/api";
 import { ArrowLeft, Download, RotateCcw } from "@/lib/icons";
 import { getJudgeStages, sanitizeJudgeLog } from "@/lib/judge-log";
 import { getSubmissionStatusLabel, getSubmissionStatusVariant, isSubmissionActive } from "@/lib/submission-status";
@@ -55,6 +55,7 @@ export function SubmissionDetailPage() {
 	const rejudgeMutation = useRejudgeSubmission(id!);
 	const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
 	const [downloadError, setDownloadError] = useState<string | null>(null);
+	const [rejudgeMessage, setRejudgeMessage] = useState<string | null>(null);
 
 	const handleDownloadFile = useCallback(
 		async (fileId: string) => {
@@ -64,8 +65,8 @@ export function SubmissionDetailPage() {
 			try {
 				const result = await api.get<{ url: string }>(`/submission-files/${fileId}/download`);
 				window.open(result.url, "_blank", "noopener,noreferrer");
-			} catch {
-				setDownloadError(t("pages.submissionDetail.downloadFailed"));
+			} catch (error) {
+				setDownloadError(getApiErrorMessage(error, t("pages.submissionDetail.downloadFailed")));
 			} finally {
 				setDownloadingFileId(null);
 			}
@@ -129,13 +130,22 @@ export function SubmissionDetailPage() {
 
 			{canRejudge && (
 				<div className="flex items-center gap-3">
-					<Button size="sm" onClick={() => rejudgeMutation.mutate()} disabled={rejudgeMutation.isPending || isInQueue}>
+					<Button
+						size="sm"
+						onClick={() => {
+							setRejudgeMessage(null);
+							rejudgeMutation.mutate(undefined, {
+								onSuccess: data => setRejudgeMessage(data.message),
+								onError: error => setRejudgeMessage(getApiErrorMessage(error, t("pages.submissionDetail.rejudgeFailed")))
+							});
+						}}
+						disabled={rejudgeMutation.isPending || isInQueue}
+					>
 						<RotateCcw />
 						{rejudgeMutation.isPending ? t("pages.submissionDetail.rejudging") : t("pages.submissionDetail.rejudge")}
 					</Button>
 					{isInQueue && <p className="text-xs text-muted-foreground">{t("pages.submissionDetail.inQueue")}</p>}
-					{rejudgeMutation.isSuccess && <p className="text-xs text-[var(--color-success)]">{t("pages.submissionDetail.rejudgeSuccess")}</p>}
-					{rejudgeMutation.isError && <p className="text-xs text-destructive">{t("pages.submissionDetail.rejudgeFailed")}</p>}
+					{rejudgeMessage && <p className={`text-xs ${rejudgeMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{rejudgeMessage}</p>}
 				</div>
 			)}
 

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAssignmentDetail, useSubmissions, useSubmit } from "@/hooks/use-api";
 import { useRefetchCountdown } from "@/hooks/use-refetch-countdown";
 import { formatDateTime } from "@/i18n";
-import { ApiError } from "@/lib/api";
+import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { LayoutGrid, List, PencilLine } from "@/lib/icons";
 import { isSubmissionActive } from "@/lib/submission-status";
 import { useAuth } from "@/stores/auth";
@@ -42,7 +42,7 @@ export function AssignmentDetailPage() {
 			return error.message;
 		}
 
-		return t("pages.assignmentDetail.uploadFailedDefault");
+		return getApiErrorMessage(error, t("pages.assignmentDetail.uploadFailedDefault"));
 	})();
 
 	const handleUpload = useCallback(

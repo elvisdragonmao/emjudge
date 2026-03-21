@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAdminRegistrationSettings, useBulkImport, useCreateUser, useResetPassword, useUpdateRegistrationSettings, useUsers } from "@/hooks/use-api";
+import { getApiErrorMessage } from "@/lib/api";
 import { ChevronLeft, ChevronRight, Download, KeyRound, Plus, Upload, X } from "@/lib/icons";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -24,15 +25,20 @@ export function AdminPage() {
 	const [newPassword, setNewPassword] = useState("");
 	const [newDisplayName, setNewDisplayName] = useState("");
 	const [newRole, setNewRole] = useState<"student" | "teacher" | "admin">("student");
+	const [createUserMessage, setCreateUserMessage] = useState("");
 
 	const [resetUserId, setResetUserId] = useState<string | null>(null);
 	const [resetNewPassword, setResetNewPassword] = useState("");
+	const [resetPasswordMessage, setResetPasswordMessage] = useState("");
 
 	const [showBulkImport, setShowBulkImport] = useState(false);
 	const [bulkText, setBulkText] = useState("");
+	const [bulkImportMessage, setBulkImportMessage] = useState("");
+	const [registrationMessage, setRegistrationMessage] = useState("");
 
 	const handleCreateUser = (e: React.FormEvent) => {
 		e.preventDefault();
+		setCreateUserMessage("");
 		createUserMutation.mutate(
 			{
 				username: newUsername,
@@ -46,6 +52,10 @@ export function AdminPage() {
 					setNewPassword("");
 					setNewDisplayName("");
 					setShowCreateUser(false);
+					setCreateUserMessage(t("pages.admin.createUserSuccess"));
+				},
+				onError: error => {
+					setCreateUserMessage(getApiErrorMessage(error, t("pages.admin.createUserFailed")));
 				}
 			}
 		);
@@ -53,12 +63,17 @@ export function AdminPage() {
 
 	const handleResetPassword = (userId: string) => {
 		if (!resetNewPassword) return;
+		setResetPasswordMessage("");
 		resetPasswordMutation.mutate(
 			{ userId, newPassword: resetNewPassword },
 			{
 				onSuccess: () => {
 					setResetUserId(null);
 					setResetNewPassword("");
+					setResetPasswordMessage(t("pages.admin.resetPasswordSuccess"));
+				},
+				onError: error => {
+					setResetPasswordMessage(getApiErrorMessage(error, t("pages.admin.resetPasswordFailed")));
 				}
 			}
 		);
@@ -66,6 +81,7 @@ export function AdminPage() {
 
 	const handleBulkImport = () => {
 		try {
+			setBulkImportMessage("");
 			const lines = bulkText.trim().split("\n").filter(Boolean);
 			const users = lines.map(line => {
 				const [username, password, displayName, role] = line.split(",").map(segment => segment.trim());
@@ -76,9 +92,19 @@ export function AdminPage() {
 					role: (role as "student" | "teacher" | "admin") || "student"
 				};
 			});
-			bulkImportMutation.mutate({ users });
+			bulkImportMutation.mutate(
+				{ users },
+				{
+					onSuccess: data => {
+						setBulkImportMessage(data.errorCount > 0 ? `${t("pages.admin.importPartial")}: ${data.errorCount}` : t("pages.admin.importDone"));
+					},
+					onError: error => {
+						setBulkImportMessage(getApiErrorMessage(error, t("pages.admin.importFailed")));
+					}
+				}
+			);
 		} catch {
-			alert(t("pages.admin.invalidFormat"));
+			setBulkImportMessage(t("pages.admin.invalidFormat"));
 		}
 	};
 
@@ -121,6 +147,7 @@ export function AdminPage() {
 								<Plus />
 								{t("pages.admin.create")}
 							</Button>
+							{createUserMessage && <p className={`text-sm ${createUserMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{createUserMessage}</p>}
 						</form>
 					</CardContent>
 				</Card>
@@ -143,7 +170,18 @@ export function AdminPage() {
 							<Download />
 							{t("pages.admin.import")}
 						</Button>
-						{bulkImportMutation.isSuccess && <p className="text-sm text-[var(--color-success)]">{t("pages.admin.importDone")}</p>}
+						{bulkImportMessage && (
+							<p className={`text-sm ${bulkImportMutation.isError || (bulkImportMutation.data?.errorCount ?? 0) > 0 ? "text-destructive" : "text-muted-foreground"}`}>{bulkImportMessage}</p>
+						)}
+						{bulkImportMutation.data?.errors?.length ? (
+							<div className="space-y-1 text-xs text-destructive">
+								{bulkImportMutation.data.errors.map(item => (
+									<p key={`${item.username}-${item.error}`}>
+										@{item.username}: {item.error}
+									</p>
+								))}
+							</div>
+						) : null}
 					</CardContent>
 				</Card>
 			)}
@@ -161,10 +199,20 @@ export function AdminPage() {
 						size="sm"
 						variant={registrationEnabled ? "outline" : "default"}
 						disabled={isRegistrationLoading || updateRegistrationSettingsMutation.isPending}
-						onClick={() => updateRegistrationSettingsMutation.mutate({ registrationEnabled: !registrationEnabled })}
+						onClick={() => {
+							setRegistrationMessage("");
+							updateRegistrationSettingsMutation.mutate(
+								{ registrationEnabled: !registrationEnabled },
+								{
+									onSuccess: data => setRegistrationMessage(data.registrationEnabled ? t("pages.admin.registrationOpen") : t("pages.admin.registrationClosed")),
+									onError: error => setRegistrationMessage(getApiErrorMessage(error, t("pages.admin.registrationUpdateFailed")))
+								}
+							);
+						}}
 					>
 						{registrationEnabled ? t("pages.admin.closeRegistration") : t("pages.admin.openRegistration")}
 					</Button>
+					{registrationMessage && <p className={`text-sm ${updateRegistrationSettingsMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{registrationMessage}</p>}
 				</CardContent>
 			</Card>
 
@@ -174,6 +222,7 @@ export function AdminPage() {
 				</CardHeader>
 				<CardContent>
 					{isLoading && <p className="text-muted-foreground">{t("common.loading")}</p>}
+					{resetPasswordMessage && <p className={`mb-3 text-sm ${resetPasswordMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{resetPasswordMessage}</p>}
 
 					<div className="space-y-2">
 						{userData?.users.map(user => (
