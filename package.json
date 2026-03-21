@@ -10,7 +10,7 @@
 		"dev:worker": "pnpm --filter @judge/worker dev",
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"lint": "pnpm run -r lint",
+		"lint": "pnpm run -r --if-present lint",
 		"prepare": "husky"
 	},
 	"devDependencies": {
