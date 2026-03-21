@@ -22,6 +22,7 @@ Thanks for your interest in improving emjudge. This project combines a web app, 
 - Report reproducible bugs with clear steps, expected behavior, and actual behavior.
 - Propose features that fit the project goal of frontend assignment submission and automated grading.
 - Improve documentation, onboarding, or contributor workflows.
+- Help translate the web app through Crowdin: https://crowdin.com/project/emjudge
 - Submit focused pull requests with tests or validation notes when relevant.
 
 ## Contribution Guidelines
@@ -35,6 +36,13 @@ Prefer small pull requests with one clear purpose. Separate refactors from featu
 - Put shared types, schemas, constants, and contracts in `packages/shared`.
 - Keep app-specific logic in the relevant package under `apps/web`, `apps/api`, or `apps/worker`.
 - Update documentation when setup, workflows, or contributor expectations change.
+
+### Translation workflow
+
+- Source and locale files live under `apps/web/src/i18n/locales`.
+- The source language is `en`, and Crowdin sync is configured through `crowdin.yml`.
+- If you want to improve translations only, prefer contributing in Crowdin instead of editing locale JSON files directly: https://crowdin.com/project/emjudge
+- If your code change adds, removes, or renames translation keys, update the English source file first and keep locale file structure in sync so Crowdin can pick up the new strings cleanly.
 
 ### Respect safety-sensitive areas
 
