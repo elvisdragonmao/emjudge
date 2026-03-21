@@ -76,7 +76,7 @@ spec:
 
     ```bash
     git clone <your-repo>
-    cd frontend-judge
+    cd emjudge
     pnpm install
 
     docker build -t judge-runner:latest docker/judge-runner/
@@ -454,7 +454,7 @@ localization:
 
       ```bash
       git clone <your-repo>
-      cd frontend-judge
+      cd emjudge
       pnpm install
 
       docker build -t judge-runner:latest docker/judge-runner/
