@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAddClassMembers, useAssignments, useClassDetail, useClassScoreHistory, useReissueClassJoinCode, useRemoveClassMember, useUpdateClassJoinCodeSettings, useUsers } from "@/hooks/use-api";
 import { formatDate, i18n } from "@/i18n";
+import { getApiErrorMessage } from "@/lib/api";
 import { Plus, RotateCcw, UserMinus, UserPlus, Users, X } from "@/lib/icons";
 import { useAuth } from "@/stores/auth";
 import { isStaff } from "@judge/shared";
@@ -29,6 +30,8 @@ export function ClassDetailPage() {
 	const [showAddMember, setShowAddMember] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [copyMessage, setCopyMessage] = useState("");
+	const [memberMessage, setMemberMessage] = useState("");
+	const [joinCodeMessage, setJoinCodeMessage] = useState("");
 	const { data: allUsers } = useUsers(1);
 
 	if (isLoading) {
@@ -57,11 +60,19 @@ export function ClassDetailPage() {
 	);
 
 	const handleAddMember = (userId: string) => {
-		addMembersMutation.mutate([userId]);
+		setMemberMessage("");
+		addMembersMutation.mutate([userId], {
+			onSuccess: data => setMemberMessage(data.message),
+			onError: error => setMemberMessage(getApiErrorMessage(error, t("pages.classDetail.memberActionFailed")))
+		});
 	};
 
 	const handleRemoveMember = (userId: string) => {
-		removeMemberMutation.mutate(userId);
+		setMemberMessage("");
+		removeMemberMutation.mutate(userId, {
+			onSuccess: data => setMemberMessage(data.message),
+			onError: error => setMemberMessage(getApiErrorMessage(error, t("pages.classDetail.memberActionFailed")))
+		});
 	};
 
 	const handleCopyJoinCode = async () => {
@@ -112,7 +123,16 @@ export function ClassDetailPage() {
 								size="sm"
 								variant={cls.joinCode.enabled ? "outline" : "default"}
 								disabled={updateJoinCodeSettingsMutation.isPending}
-								onClick={() => updateJoinCodeSettingsMutation.mutate({ joinCodeEnabled: !cls.joinCode?.enabled })}
+								onClick={() => {
+									setJoinCodeMessage("");
+									updateJoinCodeSettingsMutation.mutate(
+										{ joinCodeEnabled: !cls.joinCode?.enabled },
+										{
+											onSuccess: data => setJoinCodeMessage(data.enabled ? t("pages.classDetail.joinCodeEnabled") : t("pages.classDetail.joinCodeDisabled")),
+											onError: error => setJoinCodeMessage(getApiErrorMessage(error, t("pages.classDetail.joinCodeActionFailed")))
+										}
+									);
+								}}
 							>
 								{cls.joinCode.enabled ? t("pages.classDetail.disableJoinCode") : t("pages.classDetail.enableJoinCode")}
 							</Button>
@@ -128,12 +148,25 @@ export function ClassDetailPage() {
 								<Button size="sm" variant="outline" onClick={handleCopyJoinCode} disabled={!cls.joinCode.code}>
 									{t("pages.classDetail.copyJoinCode")}
 								</Button>
-								<Button size="sm" onClick={() => reissueJoinCodeMutation.mutate()} disabled={reissueJoinCodeMutation.isPending}>
+								<Button
+									size="sm"
+									onClick={() => {
+										setJoinCodeMessage("");
+										reissueJoinCodeMutation.mutate(undefined, {
+											onSuccess: () => setJoinCodeMessage(t("pages.classDetail.reissueJoinCodeSuccess")),
+											onError: error => setJoinCodeMessage(getApiErrorMessage(error, t("pages.classDetail.joinCodeActionFailed")))
+										});
+									}}
+									disabled={reissueJoinCodeMutation.isPending}
+								>
 									<RotateCcw />
 									{t("pages.classDetail.reissueJoinCode")}
 								</Button>
 							</div>
 						</div>
+						{joinCodeMessage && (
+							<p className={`text-sm ${updateJoinCodeSettingsMutation.isError || reissueJoinCodeMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{joinCodeMessage}</p>
+						)}
 					</CardContent>
 				</Card>
 			)}
@@ -186,6 +219,7 @@ export function ClassDetailPage() {
 					{showAddMember && (
 						<Card>
 							<CardContent className="space-y-3 pt-4">
+								{memberMessage && <p className={`text-sm ${addMembersMutation.isError || removeMemberMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{memberMessage}</p>}
 								<Input placeholder={t("pages.classDetail.searchPlaceholder")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
 								{availableUsers.length === 0 && <p className="text-sm text-muted-foreground">{searchQuery ? t("pages.classDetail.noMatchingUsers") : t("pages.classDetail.noAvailableUsers")}</p>}
 								<div className="max-h-60 space-y-1 overflow-auto">

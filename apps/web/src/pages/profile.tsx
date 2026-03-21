@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useChangePassword, useUpdateProfile } from "@/hooks/use-api";
+import { getApiErrorMessage } from "@/lib/api";
 import { KeyRound, Save } from "@/lib/icons";
 import { updateUser, useAuth } from "@/stores/auth";
 import { useState } from "react";
@@ -29,7 +30,7 @@ export function ProfilePage() {
 					updateUser({ displayName });
 					setProfileMsg(t("pages.profile.displayNameUpdated"));
 				},
-				onError: () => setProfileMsg(t("pages.profile.displayNameUpdateFailed"))
+				onError: error => setProfileMsg(getApiErrorMessage(error, t("pages.profile.displayNameUpdateFailed")))
 			}
 		);
 	};
@@ -44,7 +45,7 @@ export function ProfilePage() {
 					setCurrentPassword("");
 					setNewPassword("");
 				},
-				onError: () => setPasswordMsg(t("pages.profile.passwordUpdateFailed"))
+				onError: error => setPasswordMsg(getApiErrorMessage(error, t("pages.profile.passwordUpdateFailed")))
 			}
 		);
 	};
@@ -72,7 +73,7 @@ export function ProfilePage() {
 								<label className="text-sm font-medium">{t("pages.profile.displayName")}</label>
 								<Input value={displayName} onChange={e => setDisplayName(e.target.value)} />
 							</div>
-							{profileMsg && <p className="text-sm text-muted-foreground">{profileMsg}</p>}
+							{profileMsg && <p className={`text-sm ${updateProfileMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{profileMsg}</p>}
 							<Button type="submit" size="sm" disabled={updateProfileMutation.isPending}>
 								<Save />
 								{t("pages.profile.updateDisplayName")}
@@ -96,7 +97,7 @@ export function ProfilePage() {
 								<label className="text-sm font-medium">{t("pages.profile.newPassword")}</label>
 								<Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={6} />
 							</div>
-							{passwordMsg && <p className="text-sm text-muted-foreground">{passwordMsg}</p>}
+							{passwordMsg && <p className={`text-sm ${changePasswordMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{passwordMsg}</p>}
 							<Button type="submit" size="sm" disabled={changePasswordMutation.isPending}>
 								<KeyRound />
 								{t("pages.profile.updatePassword")}

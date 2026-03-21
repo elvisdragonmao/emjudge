@@ -344,6 +344,7 @@
 			"updateDisplayName": "更新暱稱",
 			"displayNameUpdated": "暱稱已更新",
 			"displayNameUpdateFailed": "更新失敗",
+			"requestFailed": "操作失敗，請稍後再試",
 			"changePassword": "修改密碼",
 			"currentPassword": "目前密碼",
 			"newPassword": "新密碼",
@@ -369,6 +370,8 @@
 			"joinCodeDisabled": "此班級已停用代碼加入",
 			"joinCodeAlreadyJoined": "你已經加入這個班級",
 			"joinCodeFailed": "加入班級失敗，請稍後再試",
+			"createSuccess": "班級已建立",
+			"createFailed": "建立班級失敗，請稍後再試",
 			"namePlaceholder": "班級名稱",
 			"descriptionPlaceholder": "描述（選填）",
 			"create": "建立",
@@ -397,7 +400,8 @@
 		"assignmentCreate": {
 			"title": "建立作業",
 			"creating": "建立中...",
-			"submit": "建立作業"
+			"submit": "建立作業",
+			"createFailed": "建立作業失敗，請稍後再試"
 		},
 		"assignmentEdit": {
 			"loadingTitle": "作業載入中",
@@ -409,7 +413,8 @@
 			"deleteRecords": "刪除目前所有繳交與成績紀錄",
 			"deleteHelp": "選擇刪除時，會清空此作業目前的 submissions/runs/artifacts。",
 			"updating": "更新中...",
-			"submit": "儲存變更"
+			"submit": "儲存變更",
+			"updateFailed": "更新作業失敗，請稍後再試"
 		},
 		"assignmentDetail": {
 			"loadingTitle": "作業載入中",
@@ -475,6 +480,9 @@
 			"copyJoinCode": "複製代碼",
 			"reissueJoinCode": "重新發行",
 			"joinCodeCopied": "班級代碼已複製",
+			"reissueJoinCodeSuccess": "已重新發行班級代碼",
+			"joinCodeActionFailed": "班級代碼設定失敗，請稍後再試",
+			"memberActionFailed": "班級成員操作失敗，請稍後再試",
 			"newAssignment": "出題",
 			"assignmentsTitle": "作業列表",
 			"noAssignments": "尚未建立作業",
@@ -514,10 +522,17 @@
 			"bulkImportPlaceholder": "student01,pass123,小明,student",
 			"import": "匯入",
 			"importDone": "匯入完成",
+			"importPartial": "部分匯入成功，失敗筆數",
+			"importFailed": "批次匯入失敗，請稍後再試",
 			"userListTitle": "使用者列表 ({{count}})",
 			"noClassJoined": "未加入班級",
 			"newPasswordPlaceholder": "新密碼",
 			"resetPassword": "重置密碼",
+			"resetPasswordSuccess": "密碼已重置",
+			"resetPasswordFailed": "重置密碼失敗，請稍後再試",
+			"createUserSuccess": "使用者已建立",
+			"createUserFailed": "建立使用者失敗，請稍後再試",
+			"registrationUpdateFailed": "更新註冊設定失敗，請稍後再試",
 			"previousPage": "上一頁",
 			"currentPage": "第 {{page}} 頁",
 			"nextPage": "下一頁",

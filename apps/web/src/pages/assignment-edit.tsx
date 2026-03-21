@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAssignmentDetail, useUpdateAssignment } from "@/hooks/use-api";
+import { getApiErrorMessage } from "@/lib/api";
 import { Code2, Eye, FileCode2, Save, Sparkles, X } from "@/lib/icons";
 import { DEFAULT_REACT_ASSIGNMENT_SPEC } from "@judge/shared";
 import { useCallback, useEffect, useState } from "react";
@@ -27,6 +28,7 @@ export function AssignmentEditPage() {
 	const [showPreview, setShowPreview] = useState(false);
 	const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 	const [submissionRecordAction, setSubmissionRecordAction] = useState<"keep" | "delete">("keep");
+	const [submitMessage, setSubmitMessage] = useState("");
 
 	useEffect(() => {
 		if (!assignment) return;
@@ -55,6 +57,7 @@ export function AssignmentEditPage() {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		setSubmitMessage("");
 		updateMutation.mutate(
 			{
 				title,
@@ -72,7 +75,8 @@ export function AssignmentEditPage() {
 				}
 			},
 			{
-				onSuccess: () => navigate(`/assignments/${id}`)
+				onSuccess: () => navigate(`/assignments/${id}`),
+				onError: error => setSubmitMessage(getApiErrorMessage(error, t("pages.assignmentEdit.updateFailed")))
 			}
 		);
 	};
@@ -206,6 +210,7 @@ export function AssignmentEditPage() {
 				</Card>
 
 				<div className="flex justify-end gap-3">
+					{submitMessage && <p className="flex-1 self-center text-sm text-destructive">{submitMessage}</p>}
 					<Button type="button" variant="outline" onClick={() => navigate(-1)}>
 						<X />
 						{t("common.cancel")}

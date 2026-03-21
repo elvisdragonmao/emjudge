@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useClasses, useCreateClass, useJoinClassByCode } from "@/hooks/use-api";
-import { ApiError } from "@/lib/api";
+import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { Plus, X } from "@/lib/icons";
 import { useAuth } from "@/stores/auth";
 import { isStaff } from "@judge/shared";
@@ -20,11 +20,13 @@ export function ClassesPage() {
 	const [showCreate, setShowCreate] = useState(false);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+	const [createMessage, setCreateMessage] = useState("");
 	const [joinCode, setJoinCode] = useState("");
 	const [joinMessage, setJoinMessage] = useState("");
 
 	const handleCreate = (e: React.FormEvent) => {
 		e.preventDefault();
+		setCreateMessage("");
 		createClassMutation.mutate(
 			{ name, description },
 			{
@@ -32,6 +34,10 @@ export function ClassesPage() {
 					setName("");
 					setDescription("");
 					setShowCreate(false);
+					setCreateMessage(t("pages.classes.createSuccess"));
+				},
+				onError: error => {
+					setCreateMessage(getApiErrorMessage(error, t("pages.classes.createFailed")));
 				}
 			}
 		);
@@ -61,7 +67,7 @@ export function ClassesPage() {
 								return;
 						}
 					}
-					setJoinMessage(t("pages.classes.joinCodeFailed"));
+					setJoinMessage(getApiErrorMessage(error, t("pages.classes.joinCodeFailed")));
 				}
 			}
 		);
@@ -91,6 +97,7 @@ export function ClassesPage() {
 								{t("pages.classes.create")}
 							</Button>
 						</form>
+						{createMessage && <p className={`mt-3 text-sm ${createClassMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{createMessage}</p>}
 					</CardContent>
 				</Card>
 			)}
@@ -107,7 +114,7 @@ export function ClassesPage() {
 							{t("pages.classes.joinByCode")}
 						</Button>
 					</form>
-					{joinMessage && <p className="mt-3 text-sm text-muted-foreground">{joinMessage}</p>}
+					{joinMessage && <p className={`mt-3 text-sm ${joinClassByCodeMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{joinMessage}</p>}
 				</CardContent>
 			</Card>
 

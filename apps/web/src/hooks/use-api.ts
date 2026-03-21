@@ -18,9 +18,20 @@ import type {
 	SubmissionListResponse,
 	UpdateClassJoinCodeSettingsRequest,
 	UpdateRegistrationSettingsRequest,
-	UserListResponse
+	UserListResponse,
+	UserSummary
 } from "@judge/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+interface BulkImportResult {
+	totalCount: number;
+	successCount: number;
+	errorCount: number;
+	errors: Array<{
+		username: string;
+		error: string;
+	}>;
+}
 
 // ─── Auth ────────────────────────────────────────────────
 export function useLogin() {
@@ -263,7 +274,7 @@ export function useUpdateRegistrationSettings() {
 export function useCreateUser() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (data: unknown) => api.post("/admin/users", data),
+		mutationFn: (data: unknown) => api.post<UserSummary>("/admin/users", data),
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] })
 	});
 }
@@ -271,7 +282,7 @@ export function useCreateUser() {
 export function useBulkImport() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (data: { users: unknown[] }) => api.post("/admin/users/bulk-import", data),
+		mutationFn: (data: { users: unknown[] }) => api.post<BulkImportResult>("/admin/users/bulk-import", data),
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] })
 	});
 }
