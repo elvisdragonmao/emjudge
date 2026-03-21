@@ -12,6 +12,9 @@
     <img alt="Playwright" src="https://img.shields.io/badge/playwright-grading-2EAD33?logo=playwright&logoColor=white" />
     <img alt="License Apache-2.0" src="https://img.shields.io/badge/license-Apache%202.0-blue" />
   </p>
+
+![emjudge demo](apps/web/public/screenshots.webp)
+
 </div>
 
 ## Overview
