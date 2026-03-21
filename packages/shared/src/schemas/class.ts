@@ -13,6 +13,22 @@ export const UpdateClassRequest = z.object({
 });
 export type UpdateClassRequest = z.infer<typeof UpdateClassRequest>;
 
+export const UpdateClassJoinCodeSettingsRequest = z.object({
+	joinCodeEnabled: z.boolean()
+});
+export type UpdateClassJoinCodeSettingsRequest = z.infer<typeof UpdateClassJoinCodeSettingsRequest>;
+
+export const JoinClassByCodeRequest = z.object({
+	code: z.string().min(4).max(32)
+});
+export type JoinClassByCodeRequest = z.infer<typeof JoinClassByCodeRequest>;
+
+export const ClassJoinCodeInfo = z.object({
+	enabled: z.boolean(),
+	code: z.string().nullable()
+});
+export type ClassJoinCodeInfo = z.infer<typeof ClassJoinCodeInfo>;
+
 export const ClassSummary = z.object({
 	id: z.string().uuid(),
 	name: z.string(),
@@ -24,6 +40,7 @@ export const ClassSummary = z.object({
 export type ClassSummary = z.infer<typeof ClassSummary>;
 
 export const ClassDetail = ClassSummary.extend({
+	joinCode: ClassJoinCodeInfo.optional(),
 	members: z.array(UserSummary)
 });
 export type ClassDetail = z.infer<typeof ClassDetail>;

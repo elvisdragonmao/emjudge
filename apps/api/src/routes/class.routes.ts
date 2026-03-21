@@ -2,12 +2,15 @@ import {
 	AddClassMembersRequest,
 	ClassCumulativeScorePoint,
 	ClassDetail,
+	ClassJoinCodeInfo,
 	ClassSummary,
 	CreateClassRequest,
 	IdParam,
 	isStaff,
+	JoinClassByCodeRequest,
 	MessageResponse,
 	RemoveClassMemberRequest,
+	UpdateClassJoinCodeSettingsRequest,
 	UpdateClassRequest
 } from "@judge/shared";
 import type { FastifyInstance } from "fastify";
@@ -70,11 +73,48 @@ export async function classRoutes(app: FastifyInstance) {
 				}
 			}
 
-			const cls = await classService.getClassDetail(id);
+			const cls = await classService.getClassDetail(id, isStaff(request.userRole));
 			if (!cls) {
 				return reply.status(404).send({ error: "班級不存在", statusCode: 404 });
 			}
 			return cls;
+		}
+	);
+
+	app.post(
+		"/api/classes/join-by-code",
+		{
+			preHandler: authenticate,
+			schema: createRouteSchema({
+				tags: ["Classes"],
+				summary: "Join class by code",
+				security: authSecurity,
+				body: toJsonSchema(JoinClassByCodeRequest, "JoinClassByCodeRequest"),
+				response: withErrorResponses(
+					{
+						200: toJsonSchema(MessageResponse, "JoinClassByCodeResponse")
+					},
+					[400, 401, 403, 404, 409]
+				)
+			})
+		},
+		async (request, reply) => {
+			const body = JoinClassByCodeRequest.parse(request.body);
+			const result = await classService.joinClassByCode(body.code, request.userId);
+
+			if (result.type === "not_found") {
+				return reply.status(404).send({ error: "班級代碼無效", statusCode: 404 });
+			}
+
+			if (result.type === "disabled") {
+				return reply.status(403).send({ error: "此班級已停用代碼加入", statusCode: 403 });
+			}
+
+			if (result.type === "already_joined") {
+				return reply.status(409).send({ error: "你已經加入這個班級", statusCode: 409 });
+			}
+
+			return { message: "已加入班級" };
 		}
 	);
 
@@ -159,6 +199,63 @@ export async function classRoutes(app: FastifyInstance) {
 			const body = UpdateClassRequest.parse(request.body);
 			await classService.updateClass(id, body);
 			return { message: "班級已更新" };
+		}
+	);
+
+	app.patch(
+		"/api/classes/:id/join-code",
+		{
+			preHandler: requireRole("admin", "teacher"),
+			schema: createRouteSchema({
+				tags: ["Classes"],
+				summary: "Update class join code settings",
+				security: authSecurity,
+				params: toJsonSchema(IdParam, "UpdateJoinCodeClassIdParam"),
+				body: toJsonSchema(UpdateClassJoinCodeSettingsRequest, "UpdateClassJoinCodeSettingsRequest"),
+				response: withErrorResponses(
+					{
+						200: toJsonSchema(ClassJoinCodeInfo, "UpdatedClassJoinCodeInfo")
+					},
+					[400, 401, 403, 404]
+				)
+			})
+		},
+		async (request, reply) => {
+			const { id } = IdParam.parse(request.params);
+			const body = UpdateClassJoinCodeSettingsRequest.parse(request.body);
+			await classService.updateClass(id, { joinCodeEnabled: body.joinCodeEnabled });
+			const settings = await classService.getJoinCodeSettings(id);
+			if (!settings) {
+				return reply.status(404).send({ error: "班級不存在", statusCode: 404 });
+			}
+			return settings;
+		}
+	);
+
+	app.post(
+		"/api/classes/:id/join-code/reissue",
+		{
+			preHandler: requireRole("admin", "teacher"),
+			schema: createRouteSchema({
+				tags: ["Classes"],
+				summary: "Reissue class join code",
+				security: authSecurity,
+				params: toJsonSchema(IdParam, "ReissueJoinCodeClassIdParam"),
+				response: withErrorResponses(
+					{
+						200: toJsonSchema(ClassJoinCodeInfo, "ReissuedClassJoinCodeInfo")
+					},
+					[401, 403, 404]
+				)
+			})
+		},
+		async (request, reply) => {
+			const { id } = IdParam.parse(request.params);
+			const settings = await classService.reissueJoinCode(id);
+			if (!settings) {
+				return reply.status(404).send({ error: "班級不存在", statusCode: 404 });
+			}
+			return settings;
 		}
 	);
 

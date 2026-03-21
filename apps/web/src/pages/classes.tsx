@@ -2,7 +2,8 @@ import { PageTitle } from "@/components/page-title";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useClasses, useCreateClass } from "@/hooks/use-api";
+import { useClasses, useCreateClass, useJoinClassByCode } from "@/hooks/use-api";
+import { ApiError } from "@/lib/api";
 import { Plus, X } from "@/lib/icons";
 import { useAuth } from "@/stores/auth";
 import { isStaff } from "@judge/shared";
@@ -15,9 +16,12 @@ export function ClassesPage() {
 	const { user } = useAuth();
 	const { data: classes, isLoading } = useClasses();
 	const createClassMutation = useCreateClass();
+	const joinClassByCodeMutation = useJoinClassByCode();
 	const [showCreate, setShowCreate] = useState(false);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+	const [joinCode, setJoinCode] = useState("");
+	const [joinMessage, setJoinMessage] = useState("");
 
 	const handleCreate = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -28,6 +32,36 @@ export function ClassesPage() {
 					setName("");
 					setDescription("");
 					setShowCreate(false);
+				}
+			}
+		);
+	};
+
+	const handleJoinByCode = (e: React.FormEvent) => {
+		e.preventDefault();
+		setJoinMessage("");
+		joinClassByCodeMutation.mutate(
+			{ code: joinCode },
+			{
+				onSuccess: data => {
+					setJoinCode("");
+					setJoinMessage(data.message || t("pages.classes.joinCodeSuccess"));
+				},
+				onError: error => {
+					if (error instanceof ApiError) {
+						switch (error.statusCode) {
+							case 404:
+								setJoinMessage(t("pages.classes.joinCodeInvalid"));
+								return;
+							case 403:
+								setJoinMessage(t("pages.classes.joinCodeDisabled"));
+								return;
+							case 409:
+								setJoinMessage(t("pages.classes.joinCodeAlreadyJoined"));
+								return;
+						}
+					}
+					setJoinMessage(t("pages.classes.joinCodeFailed"));
 				}
 			}
 		);
@@ -60,6 +94,22 @@ export function ClassesPage() {
 					</CardContent>
 				</Card>
 			)}
+
+			<Card>
+				<CardHeader>
+					<CardTitle>{t("pages.classes.joinByCodeTitle")}</CardTitle>
+					<CardDescription>{t("pages.classes.joinByCodeDescription")}</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<form onSubmit={handleJoinByCode} className="flex gap-3">
+						<Input placeholder={t("pages.classes.joinCodePlaceholder")} value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} required />
+						<Button type="submit" disabled={joinClassByCodeMutation.isPending}>
+							{t("pages.classes.joinByCode")}
+						</Button>
+					</form>
+					{joinMessage && <p className="mt-3 text-sm text-muted-foreground">{joinMessage}</p>}
+				</CardContent>
+			</Card>
 
 			{isLoading && <p className="text-muted-foreground">{t("common.loading")}</p>}
 

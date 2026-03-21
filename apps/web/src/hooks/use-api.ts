@@ -6,7 +6,9 @@ import type {
 	AssignmentSummary,
 	ClassCumulativeScorePoint,
 	ClassDetail,
+	ClassJoinCodeInfo,
 	ClassSummary,
+	JoinClassByCodeRequest,
 	LoginRequest,
 	LoginResponse,
 	MessageResponse,
@@ -14,6 +16,7 @@ import type {
 	RegistrationStatusResponse,
 	SubmissionDetail,
 	SubmissionListResponse,
+	UpdateClassJoinCodeSettingsRequest,
 	UpdateRegistrationSettingsRequest,
 	UserListResponse
 } from "@judge/shared";
@@ -101,6 +104,16 @@ export function useCreateClass() {
 	});
 }
 
+export function useJoinClassByCode() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (data: JoinClassByCodeRequest) => api.post<MessageResponse>("/classes/join-by-code", data),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.classes() });
+		}
+	});
+}
+
 export function useAddClassMembers(classId: string) {
 	const qc = useQueryClient();
 	return useMutation({
@@ -114,6 +127,26 @@ export function useRemoveClassMember(classId: string) {
 	return useMutation({
 		mutationFn: (userId: string) => api.delete<MessageResponse>(`/classes/${classId}/members`, { userId }),
 		onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) })
+	});
+}
+
+export function useUpdateClassJoinCodeSettings(classId: string) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (data: UpdateClassJoinCodeSettingsRequest) => api.patch<ClassJoinCodeInfo>(`/classes/${classId}/join-code`, data),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) });
+		}
+	});
+}
+
+export function useReissueClassJoinCode(classId: string) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: () => api.post<ClassJoinCodeInfo>(`/classes/${classId}/join-code/reissue`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) });
+		}
 	});
 }
 
