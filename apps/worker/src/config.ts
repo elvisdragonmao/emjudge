@@ -19,7 +19,6 @@ const EnvSchema = z.object({
 		.string()
 		.default(".cache")
 		.transform(value => path.resolve(value)),
-	JUDGE_PNPM_STORE_MOUNT_PATH: z.string().default("/pnpm/store"),
 	JUDGE_PNPM_STORE_CLEANUP_HOUR_TW: z.coerce.number().min(0).max(23).default(5),
 
 	/** Path to Docker binary (rootless) */

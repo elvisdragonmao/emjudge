@@ -3,7 +3,7 @@ import { i18n } from "@/i18n";
 export interface JudgeStage {
 	id: string;
 	label: string;
-	state: "pending" | "done" | "current";
+	state: "pending" | "done" | "current" | "failed";
 }
 
 const ANSI_PATTERN = /\u001b\[[0-?]*[ -/]*[@-~]/g;
@@ -65,6 +65,7 @@ export function getJudgeStages(log: string | null, status: string): JudgeStage[]
 	});
 
 	const isActive = status === "pending" || status === "queued" || status === "running";
+	const isFailed = status === "failed";
 
 	return STAGE_DEFINITIONS.map((stage, index) => {
 		const label = i18n.t(`judgeStages.${stage.id}`);
@@ -77,8 +78,12 @@ export function getJudgeStages(log: string | null, status: string): JudgeStage[]
 			return {
 				...stage,
 				label,
-				state: isActive ? ("current" as const) : ("done" as const)
+				state: isFailed ? ("failed" as const) : isActive ? ("current" as const) : ("done" as const)
 			};
+		}
+
+		if (reachedStageIndex === -1 && isFailed && index === 0) {
+			return { ...stage, label, state: "failed" as const };
 		}
 
 		if (reachedStageIndex === -1 && isActive && index === 0) {

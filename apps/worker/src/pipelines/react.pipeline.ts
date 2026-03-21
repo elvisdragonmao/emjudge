@@ -19,6 +19,7 @@ interface DockerMount {
 }
 
 const SHARED_PNPM_STORE_MOUNT_PATH = "/pnpm/store-seed";
+const PRIVATE_PNPM_STORE_MOUNT_PATH = "/pnpm/store";
 
 /**
  * React pipeline:
@@ -42,7 +43,6 @@ export class ReactPipeline implements JudgePipeline {
 		const prewarmDir = path.join(workDir, ".pnpm-prewarm");
 		const privatePnpmStoreDir = path.join(workDir, ".pnpm-store");
 		const containerCacheRoot = "/work/.cache";
-		const privatePnpmStoreMountPath = config.JUDGE_PNPM_STORE_MOUNT_PATH;
 		const blockedPaths = spec.blockedPaths.filter(pattern => pattern !== "package.json");
 		const webServerPort = await this.findAvailablePort();
 		const reactWebServerCommand =
@@ -151,13 +151,13 @@ export default defineConfig({
 		const installLog = await this.runDockerCommand(
 			[
 				{ source: workDir, target: "/work" },
-				{ source: privatePnpmStoreDir, target: privatePnpmStoreMountPath },
+				{ source: privatePnpmStoreDir, target: PRIVATE_PNPM_STORE_MOUNT_PATH },
 				{ source: config.JUDGE_PNPM_STORE_DIR, target: SHARED_PNPM_STORE_MOUNT_PATH, readonly: true }
 			],
 			totalTimeoutMs,
 			submissionId,
 			appendLog,
-			`bash -lc ${JSON.stringify(`mkdir -p ${containerCacheRoot}/home ${containerCacheRoot}/xdg-cache ${containerCacheRoot}/npm-cache ${containerCacheRoot}/tmp /work/artifacts ${privatePnpmStoreMountPath} && if [ -d ${SHARED_PNPM_STORE_MOUNT_PATH} ]; then cp -a ${SHARED_PNPM_STORE_MOUNT_PATH}/. ${privatePnpmStoreMountPath}/ 2>/dev/null || true; fi && cd project && set -o pipefail && pnpm config set store-dir ${privatePnpmStoreMountPath} >/dev/null && if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install --no-frozen-lockfile; fi 2>&1 | tee /work/artifacts/react-install.log`)}`,
+			`bash -lc ${JSON.stringify(`mkdir -p ${containerCacheRoot}/home ${containerCacheRoot}/xdg-cache ${containerCacheRoot}/npm-cache ${containerCacheRoot}/tmp /work/artifacts ${PRIVATE_PNPM_STORE_MOUNT_PATH} && if [ -d ${SHARED_PNPM_STORE_MOUNT_PATH} ]; then cp -a ${SHARED_PNPM_STORE_MOUNT_PATH}/. ${PRIVATE_PNPM_STORE_MOUNT_PATH}/ 2>/dev/null || true; fi && cd project && set -o pipefail && pnpm config set store-dir ${PRIVATE_PNPM_STORE_MOUNT_PATH} >/dev/null && if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install --no-frozen-lockfile; fi 2>&1 | tee /work/artifacts/react-install.log`)}`,
 			{ rejectOnNonZero: true, networkMode: "bridge" }
 		);
 		await appendLog("✅ Dependencies installed");
@@ -166,7 +166,7 @@ export default defineConfig({
 		const buildLog = await this.runDockerCommand(
 			[
 				{ source: workDir, target: "/work" },
-				{ source: privatePnpmStoreDir, target: privatePnpmStoreMountPath }
+				{ source: privatePnpmStoreDir, target: PRIVATE_PNPM_STORE_MOUNT_PATH }
 			],
 			totalTimeoutMs,
 			submissionId,
@@ -180,7 +180,7 @@ export default defineConfig({
 		const testLog = await this.runDockerCommand(
 			[
 				{ source: workDir, target: "/work" },
-				{ source: privatePnpmStoreDir, target: privatePnpmStoreMountPath }
+				{ source: privatePnpmStoreDir, target: PRIVATE_PNPM_STORE_MOUNT_PATH }
 			],
 			totalTimeoutMs,
 			submissionId,
@@ -196,7 +196,7 @@ export default defineConfig({
 	}
 
 	private async prewarmSharedPnpmStore(projectDir: string, prewarmDir: string, timeoutMs: number, submissionId: string, appendLog: (message: string) => Promise<void>) {
-		const containerCacheRoot = "/work/.cache";
+		const containerCacheRoot = "/prewarm/.cache";
 		const packageJsonPath = path.join(projectDir, "package.json");
 		const pnpmLockPath = path.join(projectDir, "pnpm-lock.yaml");
 
@@ -225,7 +225,7 @@ export default defineConfig({
 			submissionId,
 			appendLog,
 			`bash -lc ${JSON.stringify(`mkdir -p ${containerCacheRoot}/home ${containerCacheRoot}/xdg-cache ${containerCacheRoot}/npm-cache ${containerCacheRoot}/tmp && cd /prewarm && pnpm config set store-dir ${SHARED_PNPM_STORE_MOUNT_PATH} >/dev/null && pnpm fetch --frozen-lockfile --ignore-scripts 2>&1`)}`,
-			{ rejectOnNonZero: true, networkMode: "bridge" }
+			{ rejectOnNonZero: true, networkMode: "bridge", workdir: "/prewarm", cacheRoot: containerCacheRoot }
 		);
 		await appendLog("✅ Shared pnpm cache prewarmed");
 	}
@@ -236,10 +236,11 @@ export default defineConfig({
 		submissionId: string,
 		appendLog: (message: string) => Promise<void>,
 		command: string,
-		options: { rejectOnNonZero?: boolean; networkMode?: string } = {}
+		options: { rejectOnNonZero?: boolean; networkMode?: string; workdir?: string; cacheRoot?: string } = {}
 	): Promise<string> {
 		return new Promise((resolve, reject) => {
-			const containerCacheRoot = "/work/.cache";
+			const containerWorkdir = options.workdir ?? "/work";
+			const containerCacheRoot = options.cacheRoot ?? `${containerWorkdir}/.cache`;
 			const containerUser = typeof process.getuid === "function" && typeof process.getgid === "function" ? `${process.getuid()}:${process.getgid()}` : null;
 			const args = [
 				"run",
@@ -253,7 +254,7 @@ export default defineConfig({
 				"--read-only",
 				`--stop-timeout=${Math.ceil(timeoutMs / 1000)}`,
 				"-w",
-				"/work",
+				containerWorkdir,
 				"-e",
 				`HOME=${containerCacheRoot}/home`,
 				"-e",
@@ -269,7 +270,7 @@ export default defineConfig({
 				"-e",
 				"NODE_PATH=/usr/lib/node_modules",
 				"-e",
-				`PNPM_STORE_DIR=${config.JUDGE_PNPM_STORE_MOUNT_PATH}`,
+				`PNPM_STORE_DIR=${PRIVATE_PNPM_STORE_MOUNT_PATH}`,
 				...(containerUser ? ["--user", containerUser] : []),
 				...mounts.flatMap(mount => ["-v", `${mount.source}:${mount.target}${mount.readonly ? ":ro" : ""}`]),
 				config.JUDGE_IMAGE,
