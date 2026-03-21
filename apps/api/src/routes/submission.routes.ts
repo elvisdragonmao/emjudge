@@ -37,21 +37,6 @@ export async function submissionRoutes(app: FastifyInstance) {
 				security: authSecurity,
 				params: toJsonSchema(IdParam, "SubmissionAssignmentIdParam"),
 				consumes: ["multipart/form-data"],
-				body: {
-					type: "object",
-					properties: {
-						path: {
-							type: "array",
-							items: { type: "string" },
-							description: "Optional repeated path fields aligned with uploaded files."
-						},
-						file: {
-							type: "array",
-							items: { type: "string", format: "binary" },
-							description: "One or more uploaded files."
-						}
-					}
-				},
 				response: withErrorResponses(
 					{
 						201: toJsonSchema(SubmissionCreatedResponse, "SubmissionCreatedResponse")

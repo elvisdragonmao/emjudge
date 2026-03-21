@@ -109,6 +109,14 @@ body {
 	margin-bottom: 0.75rem;
 	padding-left: 1.5rem;
 }
+.markdown-content ul {
+	list-style: disc;
+	list-style-position: outside;
+}
+.markdown-content ol {
+	list-style: decimal;
+	list-style-position: outside;
+}
 .markdown-content li {
 	margin-bottom: 0.25rem;
 }
