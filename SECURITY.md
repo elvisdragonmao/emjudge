@@ -16,7 +16,7 @@ Please do not open public GitHub issues for security vulnerabilities.
 Instead, report them privately through one of these channels:
 
 - GitHub Security Advisories: use the repository's private vulnerability reporting feature if available.
-- Email: contact the maintainer at `elvisdragonmao@gmail.com`.
+- Email: contact the maintainer at `info@elvismao.com`.
 
 When reporting, please include:
 

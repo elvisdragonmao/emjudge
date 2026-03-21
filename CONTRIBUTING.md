@@ -81,11 +81,13 @@ If you cannot run a check locally, explain why in the pull request and describe 
 
 ## Commit Messages
 
-Use short, descriptive commit messages that explain intent. Examples:
+Use short, descriptive commit messages that explain intent. Suggest following [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-- `fix submission artifact cleanup`
-- `add assignment bulk import validation`
-- `docs clarify worker setup`
+- feat: allow provided config object to extend other configs
+- fix: prevent crash when config object is missing
+- docs: add examples to configuration documentation
+- chore: update dependencies to latest versions
+- refactor: simplify config merging logic without changing behavior
 
 ## Reporting Bugs and Requesting Features
 
