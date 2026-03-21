@@ -1,4 +1,4 @@
-import { MINIO_BUCKETS } from "@judge/shared";
+import { MINIO_BUCKETS, normalizeSubmissionPath } from "@judge/shared";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -37,10 +37,15 @@ export class HtmlCssJsPipeline implements JudgePipeline {
 		}>("SELECT path, minio_key FROM submission_files WHERE submission_id = $1", [submissionId]);
 
 		for (const file of stripSharedSubmissionRoot(files)) {
-			const dest = path.join(siteDir, file.path);
+			const normalizedPath = normalizeSubmissionPath(file.path);
+			if (!normalizedPath) {
+				continue;
+			}
+
+			const dest = path.join(siteDir, normalizedPath);
 			fs.mkdirSync(path.dirname(dest), { recursive: true });
 			await downloadFile(MINIO_BUCKETS.SUBMISSIONS, file.minio_key, dest);
-			this.log(submissionId, `  Downloaded: ${file.path}`);
+			this.log(submissionId, `  Downloaded: ${normalizedPath}`);
 		}
 
 		await appendLog(`Downloaded ${files.length} submission files`);
@@ -107,9 +112,17 @@ export default defineConfig({
 			const args = [
 				"run",
 				"--rm",
-				// "--network=none", // TODO: re-enable for security after pre-installing deps in image
+				"--network=none",
 				"--memory=512m",
 				"--cpus=1",
+				"--pids-limit=256",
+				"--cap-drop=ALL",
+				"--security-opt=no-new-privileges:true",
+				"--read-only",
+				"--tmpfs",
+				"/tmp:rw,noexec,nosuid,size=128m",
+				"--tmpfs",
+				"/home/judge:rw,nosuid,size=64m",
 				`--stop-timeout=${Math.ceil(timeoutMs / 1000)}`,
 				"-v",
 				`${workDir}:/work`,
@@ -117,6 +130,8 @@ export default defineConfig({
 				"/work",
 				"-e",
 				"NODE_PATH=/usr/lib/node_modules",
+				"-e",
+				"HOME=/home/judge",
 				config.JUDGE_IMAGE,
 				"sh",
 				"-c",

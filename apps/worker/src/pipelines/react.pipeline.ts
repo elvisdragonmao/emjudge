@@ -8,7 +8,6 @@ import { queryMany } from "../db.js";
 import { downloadFile } from "../minio.js";
 import type { JudgeContext, JudgePipeline, JudgeResult } from "./base.pipeline.js";
 import { normalizePlaywrightTestContent } from "./playwright-test-content.js";
-import { prepareSharedPnpmStore } from "./pnpm-store.js";
 import { stripSharedSubmissionRoot } from "./submission-paths.js";
 
 /**
@@ -25,7 +24,7 @@ export class ReactPipeline implements JudgePipeline {
 		const projectDir = path.join(workDir, "project");
 		const testDir = path.join(workDir, "tests");
 		const artifactsDir = path.join(workDir, "artifacts");
-		const pnpmStoreMountPath = config.JUDGE_PNPM_STORE_MOUNT_PATH;
+		const pnpmStoreMountPath = "/work/.pnpm-store";
 		const blockedPaths = spec.blockedPaths.filter(pattern => pattern !== "package.json");
 		const webServerPort = await this.findAvailablePort();
 		const reactWebServerCommand =
@@ -109,12 +108,10 @@ export default defineConfig({
 		);
 
 		// 4. Install, build, then test in Docker
-		const pnpmStoreState = prepareSharedPnpmStore(config.JUDGE_PNPM_STORE_DIR, config.JUDGE_PNPM_STORE_CLEANUP_HOUR_TW);
-		await appendLog(
-			pnpmStoreState.cleaned
-				? `🧹 Cleared shared pnpm store for TW ${pnpmStoreState.cleanupKey} ${String(config.JUDGE_PNPM_STORE_CLEANUP_HOUR_TW).padStart(2, "0")}:00 window`
-				: `📦 Reusing shared pnpm store (${config.JUDGE_PNPM_STORE_DIR})`
-		);
+		const submissionStoreDir = path.join(workDir, ".pnpm-store");
+		fs.mkdirSync(submissionStoreDir, { recursive: true });
+		fs.chmodSync(submissionStoreDir, 0o777);
+		await appendLog("🗃️ Using isolated pnpm store for this submission");
 
 		await appendLog("🗃️ Installing dependencies with pnpm");
 		const installLog = await this.runDockerCommand(
@@ -122,7 +119,8 @@ export default defineConfig({
 			totalTimeoutMs,
 			submissionId,
 			appendLog,
-			`bash -lc ${JSON.stringify(`mkdir -p /work/artifacts && mkdir -p ${pnpmStoreMountPath} && cd project && set -o pipefail && pnpm config set store-dir ${pnpmStoreMountPath} >/dev/null && if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile; else pnpm install --no-frozen-lockfile; fi 2>&1 | tee /work/artifacts/react-install.log`)}`,
+			`bash -lc ${JSON.stringify(`mkdir -p /work/artifacts && mkdir -p ${pnpmStoreMountPath} && cd project && set -o pipefail && pnpm config set store-dir ${pnpmStoreMountPath} >/dev/null && if [ -f pnpm-lock.yaml ]; then pnpm install --frozen-lockfile --ignore-scripts; else pnpm install --no-frozen-lockfile --ignore-scripts; fi 2>&1 | tee /work/artifacts/react-install.log`)}`,
+			true,
 			true
 		);
 		await appendLog("✅ Dependencies installed");
@@ -134,12 +132,13 @@ export default defineConfig({
 			submissionId,
 			appendLog,
 			'bash -lc "mkdir -p /work/artifacts && cd project && set -o pipefail && pnpm run build 2>&1 | tee /work/artifacts/react-build.log"',
+			false,
 			true
 		);
 		await appendLog("✅ Project build finished");
 
 		await appendLog("🧪 Starting preview server and Playwright tests");
-		const testLog = await this.runDockerCommand(workDir, totalTimeoutMs, submissionId, appendLog, "npx playwright test");
+		const testLog = await this.runDockerCommand(workDir, totalTimeoutMs, submissionId, appendLog, "npx playwright test", false);
 
 		const log = ["[Install]", installLog.trim(), "", "[Build]", buildLog.trim(), "", "[Test]", testLog.trim()].filter(Boolean).join("\n");
 
@@ -147,25 +146,41 @@ export default defineConfig({
 		return this.parseResults(workDir, log, artifactsDir, true);
 	}
 
-	private runDockerCommand(workDir: string, timeoutMs: number, submissionId: string, appendLog: (message: string) => Promise<void>, command: string, rejectOnNonZero = false): Promise<string> {
+	private runDockerCommand(
+		workDir: string,
+		timeoutMs: number,
+		submissionId: string,
+		appendLog: (message: string) => Promise<void>,
+		command: string,
+		allowNetwork = false,
+		rejectOnNonZero = false
+	): Promise<string> {
 		return new Promise((resolve, reject) => {
 			const args = [
 				"run",
 				"--rm",
-				"--network=host",
+				allowNetwork ? "--network=bridge" : "--network=none",
 				"--memory=1g",
 				"--cpus=2",
+				"--pids-limit=256",
+				"--cap-drop=ALL",
+				"--security-opt=no-new-privileges:true",
+				"--read-only",
+				"--tmpfs",
+				"/tmp:rw,noexec,nosuid,size=128m",
+				"--tmpfs",
+				"/home/judge:rw,nosuid,size=64m",
 				`--stop-timeout=${Math.ceil(timeoutMs / 1000)}`,
 				"-v",
 				`${workDir}:/work`,
-				"-v",
-				`${config.JUDGE_PNPM_STORE_DIR}:${config.JUDGE_PNPM_STORE_MOUNT_PATH}`,
 				"-w",
 				"/work",
 				"-e",
 				"NODE_PATH=/usr/lib/node_modules",
 				"-e",
-				`PNPM_STORE_DIR=${config.JUDGE_PNPM_STORE_MOUNT_PATH}`,
+				"HOME=/home/judge",
+				"-e",
+				"PNPM_STORE_DIR=/work/.pnpm-store",
 				config.JUDGE_IMAGE,
 				"sh",
 				"-c",
