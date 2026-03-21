@@ -56,6 +56,8 @@ export const RemoveClassMemberRequest = z.object({
 export type RemoveClassMemberRequest = z.infer<typeof RemoveClassMemberRequest>;
 
 export const ClassCumulativeScorePoint = z.object({
+	userId: z.string().uuid(),
+	userName: z.string(),
 	date: z.string(),
 	totalScore: z.number(),
 	assignmentTitle: z.string()

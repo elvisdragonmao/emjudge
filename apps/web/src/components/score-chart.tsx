@@ -25,7 +25,23 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 		const mutedForeground = styles.getPropertyValue("--color-muted-foreground").trim();
 		const border = styles.getPropertyValue("--color-border").trim();
 		const accent = styles.getPropertyValue("--catppuccin-color-blue").trim();
-		const accentSoft = styles.getPropertyValue("--catppuccin-color-lavender").trim();
+		const seriesColors = [
+			styles.getPropertyValue("--catppuccin-color-blue").trim(),
+			styles.getPropertyValue("--catppuccin-color-green").trim(),
+			styles.getPropertyValue("--catppuccin-color-peach").trim(),
+			styles.getPropertyValue("--catppuccin-color-pink").trim(),
+			styles.getPropertyValue("--catppuccin-color-teal").trim(),
+			styles.getPropertyValue("--catppuccin-color-mauve").trim(),
+			styles.getPropertyValue("--catppuccin-color-yellow").trim(),
+			styles.getPropertyValue("--catppuccin-color-red").trim()
+		].filter(Boolean);
+
+		const groupedPoints = new Map<string, ClassCumulativeScorePoint[]>();
+		for (const point of data) {
+			const existing = groupedPoints.get(point.userId) ?? [];
+			existing.push(point);
+			groupedPoints.set(point.userId, existing);
+		}
 
 		const chart = echarts.init(chartRef.current);
 		instanceRef.current = chart;
@@ -38,28 +54,47 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 				minute: "2-digit"
 			}).format(new Date(value));
 
+		const series = Array.from(groupedPoints.values()).map((points, index) => ({
+			name: points[0]?.userName ?? `User ${index + 1}`,
+			type: "line" as const,
+			data: points.map(point => ({
+				value: [point.date, point.totalScore],
+				assignmentTitle: point.assignmentTitle
+			})),
+			smooth: true,
+			showSymbol: true,
+			symbolSize: 7,
+			lineStyle: { width: 3, color: seriesColors[index % seriesColors.length] || accent },
+			itemStyle: { color: seriesColors[index % seriesColors.length] || accent }
+		}));
+
 		const option: echarts.EChartsCoreOption = {
+			color: seriesColors,
 			title: {
 				text: i18n.t("components.scoreChart.title"),
 				left: "center",
 				textStyle: { fontSize: 14, fontWeight: 500, color: foreground }
 			},
+			legend: {
+				top: 28,
+				textStyle: { color: mutedForeground }
+			},
 			tooltip: {
-				trigger: "axis",
+				trigger: "item",
 				backgroundColor: styles.getPropertyValue("--color-card").trim(),
 				borderColor: border,
 				textStyle: { color: foreground },
 				formatter: (params: unknown) => {
-					const list = params as Array<{
-						axisValueLabel: string;
-						value: number;
+					const item = params as {
+						seriesName: string;
+						value: [string, number];
 						data: { assignmentTitle: string };
-					}>;
-					const item = list[0];
+					};
 					if (!item) return "";
 					return i18n.t("components.scoreChart.tooltip", {
-						time: formatPointTime(item.axisValueLabel),
-						value: item.value,
+						time: formatPointTime(item.value[0]),
+						userName: item.seriesName,
+						value: item.value[1],
 						assignmentTitle: item.data.assignmentTitle
 					});
 				}
@@ -71,8 +106,7 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 				containLabel: true
 			},
 			xAxis: {
-				type: "category",
-				data: data.map(d => d.date),
+				type: "time",
 				axisLine: { lineStyle: { color: border } },
 				axisTick: { lineStyle: { color: border } },
 				axisLabel: {
@@ -87,24 +121,7 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 				axisLabel: { color: mutedForeground },
 				splitLine: { lineStyle: { color: border, opacity: 0.55 } }
 			},
-			series: [
-				{
-					type: "line",
-					data: data.map(d => ({
-						value: d.totalScore,
-						assignmentTitle: d.assignmentTitle
-					})),
-					smooth: true,
-					lineStyle: { width: 3, color: accent },
-					itemStyle: { color: accentSoft },
-					areaStyle: {
-						color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-							{ offset: 0, color: colorMixForChart(accent, 0.34) },
-							{ offset: 1, color: colorMixForChart(accentSoft, 0.08) }
-						])
-					}
-				}
-			]
+			series
 		};
 
 		chart.setOption(option);
@@ -119,15 +136,4 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 	}, [data]);
 
 	return <div ref={chartRef} className={className} style={{ height: 300 }} />;
-}
-
-function colorMixForChart(color: string, alpha: number) {
-	const normalized = color.replace("#", "");
-	if (normalized.length !== 6) return color;
-
-	const r = Number.parseInt(normalized.slice(0, 2), 16);
-	const g = Number.parseInt(normalized.slice(2, 4), 16);
-	const b = Number.parseInt(normalized.slice(4, 6), 16);
-
-	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
