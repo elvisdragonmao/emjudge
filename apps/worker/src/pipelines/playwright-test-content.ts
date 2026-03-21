@@ -1,4 +1,21 @@
 const PLAYWRIGHT_TEST_IMPORT_RE = /^import\s*\{\s*([^}]+)\s*\}\s*from\s*['"]@playwright\/test['"];?\s*$/gm;
+const SCREENSHOT_CALL_RE = /\.screenshot\s*\(|toHaveScreenshot\s*\(/;
+
+const AUTO_SCREENSHOT_HOOK = `
+test.beforeEach(async ({ page }, testInfo) => {
+  let captured = false;
+
+  page.on('load', async () => {
+    if (captured) return;
+    captured = true;
+
+    await page.screenshot({
+      path: testInfo.outputPath('initial-page.png'),
+      fullPage: true
+    });
+  });
+});
+`.trim();
 
 const PLAYWRIGHT_IMPORT_PRIORITY = new Map([
 	["test", 0],
@@ -21,12 +38,14 @@ export function normalizePlaywrightTestContent(content: string) {
 		return "";
 	});
 
-	if (imports.size === 0) {
-		return content;
+	const needsAutoScreenshot = !SCREENSHOT_CALL_RE.test(content);
+	if (needsAutoScreenshot) {
+		imports.add("test");
 	}
 
 	const importLine = `import { ${Array.from(imports).sort(sortPlaywrightImports).join(", ")} } from '@playwright/test';`;
 	const trimmedBody = body.trim();
+	const mergedBody = needsAutoScreenshot ? `${AUTO_SCREENSHOT_HOOK}\n\n${trimmedBody}`.trim() : trimmedBody;
 
-	return trimmedBody ? `${importLine}\n\n${trimmedBody}\n` : `${importLine}\n`;
+	return mergedBody ? `${importLine}\n\n${mergedBody}\n` : `${importLine}\n`;
 }

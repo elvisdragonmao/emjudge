@@ -1,4 +1,4 @@
-import { IdParam, isStaff, MINIO_BUCKETS, normalizeSubmissionPath, PaginationQuery, shouldIgnoreUploadPath, SubmissionDetail, SubmissionListResponse } from "@judge/shared";
+import { IdParam, MINIO_BUCKETS, normalizeSubmissionPath, PaginationQuery, shouldIgnoreUploadPath, SubmissionDetail, SubmissionListResponse } from "@judge/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { authSecurity, createRouteSchema, toJsonSchema, withErrorResponses } from "../lib/openapi.js";
@@ -101,17 +101,16 @@ export async function submissionRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id: assignmentId } = IdParam.parse(request.params);
 			const { page, limit } = PaginationQuery.parse(request.query);
 
-			if (isStaff(request.userRole)) {
-				return submissionService.listByAssignment(assignmentId, page, limit);
+			const canView = await submissionService.canUserViewAssignmentSubmissions(request.userId, request.userRole, assignmentId);
+			if (!canView) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
 
-			// Students see only their own
-			const submissions = await submissionService.listByUser(request.userId, assignmentId);
-			return { submissions, total: submissions.length };
+			return submissionService.listByAssignment(assignmentId, page, limit);
 		}
 	);
 
@@ -141,8 +140,8 @@ export async function submissionRoutes(app: FastifyInstance) {
 				return reply.status(404).send({ error: "提交不存在", statusCode: 404 });
 			}
 
-			// Students can only see their own
-			if (request.userRole === "student" && detail.userId !== request.userId) {
+			const canView = await submissionService.canUserViewSubmission(request.userId, request.userRole, id);
+			if (!canView) {
 				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
 
@@ -265,7 +264,8 @@ export async function submissionRoutes(app: FastifyInstance) {
 				return reply.status(404).send({ error: "Artifact not found", statusCode: 404 });
 			}
 
-			if (request.userRole === "student" && artifact.user_id !== request.userId) {
+			const canView = await submissionService.canUserViewArtifact(request.userId, request.userRole, id);
+			if (!canView) {
 				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
 
