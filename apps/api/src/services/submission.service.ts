@@ -5,6 +5,7 @@ import { getPresignedUrl, uploadBuffer } from "../utils/minio.js";
 interface SubmissionRow {
 	id: string;
 	assignment_id: string;
+	class_id?: string;
 	user_id: string;
 	status: string;
 	score: number | null;
@@ -213,6 +214,57 @@ export async function getDetail(submissionId: string) {
 		})),
 		runs: runsWithArtifacts
 	};
+}
+
+export async function canUserViewAssignmentSubmissions(userId: string, userRole: string, assignmentId: string) {
+	if (userRole !== "student") {
+		return true;
+	}
+
+	const row = await queryOne(
+		`SELECT 1
+     FROM assignments a
+     JOIN class_members cm ON cm.class_id = a.class_id
+     WHERE a.id = $1 AND cm.user_id = $2`,
+		[assignmentId, userId]
+	);
+
+	return row !== null;
+}
+
+export async function canUserViewSubmission(userId: string, userRole: string, submissionId: string) {
+	if (userRole !== "student") {
+		return true;
+	}
+
+	const row = await queryOne(
+		`SELECT 1
+     FROM submissions s
+     JOIN assignments a ON a.id = s.assignment_id
+     JOIN class_members cm ON cm.class_id = a.class_id
+     WHERE s.id = $1 AND cm.user_id = $2`,
+		[submissionId, userId]
+	);
+
+	return row !== null;
+}
+
+export async function canUserViewArtifact(userId: string, userRole: string, artifactId: string) {
+	if (userRole !== "student") {
+		return true;
+	}
+
+	const row = await queryOne(
+		`SELECT 1
+     FROM submission_artifacts sa
+     JOIN submissions s ON s.id = sa.submission_id
+     JOIN assignments a ON a.id = s.assignment_id
+     JOIN class_members cm ON cm.class_id = a.class_id
+     WHERE sa.id = $1 AND cm.user_id = $2`,
+		[artifactId, userId]
+	);
+
+	return row !== null;
 }
 
 export async function listByUser(userId: string, assignmentId: string) {
