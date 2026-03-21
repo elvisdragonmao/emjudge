@@ -30,6 +30,121 @@ The system is organized into separate web, API, and worker applications so gradi
 - Shared workspace packages for types, schemas, permissions, and config
 - Multi-language web UI with Traditional Chinese, Simplified Chinese, and English
 
+## Quick Start
+
+[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates/NZFMQ8?referralCode=Edit-Mr)
+
+> You can deploy to Zeabur with one click, but since Zeabur doesn't supports Docker-in-Docker yet so judge still needs to be run somewhere else.
+
+### Start the full stack
+
+```bash
+docker compose up --build
+```
+
+- App: `http://localhost:8080`
+- API health: `http://localhost:8080/api/health`
+- MinIO API: `http://localhost:9000`
+- MinIO Console: `http://localhost:9001`
+- PostgreSQL: `localhost:5432`
+
+### Default local credentials
+
+- Admin username: `admin`
+- Admin password: `admin123`
+- MinIO access key: `minio`
+- MinIO secret key: `minioadmin`
+
+### Stop the full stack
+
+```bash
+docker compose down
+```
+
+To also remove named volumes:
+
+```bash
+docker compose down -v
+```
+
+### Local Development
+
+Choose one of these local workflows:
+
+- `docker-compose.dev.yml` - only PostgreSQL and MinIO, for running app processes with `pnpm dev`
+- `docker-compose.yml` - full stack in Docker, including API, web, reverse proxy, and worker
+
+### 1. Install dependencies
+
+```bash
+pnpm install
+```
+
+### 2. Start local infrastructure
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+This starts local PostgreSQL and MinIO for development.
+
+### 3. Create environment file
+
+```bash
+cp .env.example .env
+```
+
+At minimum, update these values before real usage:
+
+- `JWT_SECRET`
+- `DEFAULT_ADMIN_PASSWORD`
+
+### 4. Initialize the database
+
+```bash
+pnpm db:migrate
+pnpm db:seed
+```
+
+### 5. Start the API and web app
+
+```bash
+pnpm dev
+```
+
+### 6. Start the judge worker in another terminal
+
+```bash
+pnpm dev:worker
+```
+
+### 7. Build the judge runner image
+
+```bash
+docker build -t judge-runner:latest docker/judge-runner/
+```
+
+## Full Local Docker Deployment
+
+If you want to run everything locally with one command, use the root `docker-compose.yml`.
+
+### What it starts
+
+- `postgres` - PostgreSQL database
+- `minio` - object storage
+- `minio-init` - creates the required buckets
+- `api` - Fastify backend
+- `web` - React frontend served by Nginx
+- `caddy` - local reverse proxy entrypoint
+- `worker` - judge worker with Docker socket access
+
+### Notes
+
+- The worker uses `/var/run/docker.sock` to launch isolated judge containers from inside the compose stack
+- The worker auto-builds `judge-runner:latest` from `docker/judge-runner/` if the image does not exist yet
+- The API container runs database migration and admin seeding on startup
+- For real deployments, replace the default secrets in `docker-compose.yml`
+
 ## Repository Layout
 
 ```text
@@ -39,11 +154,18 @@ frontend-judge/
 │   ├── web/          # React + Vite frontend
 │   └── worker/       # Judge worker process
 ├── docker/
+│   ├── api.Dockerfile
+│   ├── web.Dockerfile
+│   ├── worker.Dockerfile
+│   ├── caddy/
+│   ├── nginx/
+│   ├── worker/
 │   └── judge-runner/ # Playwright runner image
 ├── packages/
 │   ├── shared/       # Shared types, schemas, constants, templates
 │   └── config/       # Shared TypeScript config
-├── docker-compose.yml
+├── docker-compose.yml      # Full local stack
+├── docker-compose.dev.yml  # Infra-only dev stack
 └── pnpm-workspace.yaml
 ```
 
@@ -94,58 +216,6 @@ frontend-judge/
 | Docker     | 24+     |
 | PostgreSQL | 15+     |
 | MinIO      | latest  |
-
-## Quick Start
-
-### 1. Install dependencies
-
-```bash
-pnpm install
-```
-
-### 2. Start local infrastructure
-
-```bash
-docker compose up -d
-```
-
-This starts local PostgreSQL and MinIO for development.
-
-### 3. Create environment file
-
-```bash
-cp .env.example .env
-```
-
-At minimum, update these values before real usage:
-
-- `JWT_SECRET`
-- `DEFAULT_ADMIN_PASSWORD`
-
-### 4. Initialize the database
-
-```bash
-pnpm db:migrate
-pnpm db:seed
-```
-
-### 5. Start the API and web app
-
-```bash
-pnpm dev
-```
-
-### 6. Start the judge worker in another terminal
-
-```bash
-pnpm dev:worker
-```
-
-### 7. Build the judge runner image
-
-```bash
-docker build -t judge-runner:latest docker/judge-runner/
-```
 
 ## Development Commands
 
@@ -225,6 +295,8 @@ node apps/worker/dist/index.js
 The frontend production bundle is generated in `apps/web/dist` and can be served by Nginx or any static file server.
 
 Multiple worker instances can run in parallel as long as each instance has its own `WORKER_ID`.
+
+The local Docker images used by `docker-compose.yml` are defined in `docker/api.Dockerfile`, `docker/web.Dockerfile`, and `docker/worker.Dockerfile`.
 
 ## Production Notes
 

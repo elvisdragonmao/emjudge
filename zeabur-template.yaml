@@ -3,9 +3,9 @@ kind: Template
 metadata:
   name: emjudge
 spec:
-  description: Frontend assignment submission and auto-grading platform with Playwright testing
-  icon:
-  coverImage:
+  description: One-click Zeabur deployment for emjudge with PostgreSQL, MinIO, API, Web, and Caddy. External worker required for grading.
+  icon: https://raw.githubusercontent.com/elvisdragonmao/emjudge/main/apps/web/public/ej.svg
+  coverImage: https://raw.githubusercontent.com/elvisdragonmao/emjudge/main/apps/web/public/og.png
   tags:
     - Tool
     - Education
@@ -13,15 +13,15 @@ spec:
     - key: PUBLIC_DOMAIN
       type: DOMAIN
       name: Domain
-      description: The domain for your emjudge platform
+      description: The public domain for your emjudge platform
     - key: JWT_SECRET
       type: STRING
       name: JWT Secret
-      description: Secret key for JWT token signing (use a random string)
+      description: Secret key for JWT token signing
     - key: DEFAULT_ADMIN_PASSWORD
       type: STRING
       name: Admin Password
-      description: Default password for the admin account
+      description: Initial password for the default admin account
   readme: |-
     # emjudge
 
@@ -39,63 +39,59 @@ spec:
 
     | Service    | Description |
     |------------|-------------|
-    | PostgreSQL  | Database for all application data |
-    | MinIO       | Object storage for submissions and artifacts |
-    | API         | Fastify REST API backend (port 3000) |
-    | Web         | React SPA built and served as static files (port 3001) |
-    | Caddy       | Reverse proxy: routes `/api/*` to API, everything else to Web |
+    | PostgreSQL | Database for application data and judge jobs |
+    | MinIO      | Object storage for submissions and artifacts |
+    | API        | Fastify REST API backend built from this repository with Docker |
+    | Web        | React SPA built from this repository with Docker and served by Nginx |
+    | Caddy      | Public entrypoint that routes `/api/*` to API, `/img/*` to MinIO, and everything else to Web |
 
-    ## Default Admin Account
+    ## Default admin account
 
-    After deployment, login with:
+    After deployment, log in with:
+
     - Username: `admin`
-    - Password: The password you set in `DEFAULT_ADMIN_PASSWORD`
+    - Password: the value you set in `DEFAULT_ADMIN_PASSWORD`
 
-    ## Important Notes
+    ## Important notes
 
-    - The Judge Worker requires Docker access and must be run separately on a machine with Docker installed
-    - Database migrations run automatically when the API starts
+    - This template deploys the web app, API, database, and object storage
+    - The Judge Worker is **not** deployed on Zeabur by this template because it needs local Docker access to run untrusted submissions safely
+    - API startup automatically runs database migration and idempotent admin seeding before booting the server
 
-    ## Worker Setup (External Machine)
+    ## Worker setup (external machine)
 
-    The Judge Worker polls the database for jobs. It requires outbound access to PostgreSQL and MinIO — no inbound ports needed.
+    The Judge Worker polls the database for jobs. It needs outbound access to PostgreSQL and MinIO, but no inbound ports.
 
     ### 1. Get the PostgreSQL external connection string
 
-    Port forwarding is enabled automatically. In the Zeabur Dashboard, go to the **PostgreSQL** service → **Instructions** → copy the **Connection String (external, for Worker)** value.
+    In the Zeabur Dashboard, open the **PostgreSQL** service and copy **Connection String (external, for Worker)** from **Instructions**.
 
     ### 2. Expose MinIO for external access
 
-    In the Zeabur Dashboard, go to the **MinIO** service → **Domains** tab → bind a domain (e.g. `minio.yourdomain.com`). This exposes MinIO's API over HTTPS on port 443.
+    In the Zeabur Dashboard, open the **MinIO** service, go to **Domains**, and bind a domain such as `minio.yourdomain.com` so MinIO is reachable over HTTPS on port `443`.
 
     ### 3. Run the worker
 
     ```bash
-    # Clone the repository
     git clone <your-repo>
     cd frontend-judge
-
-    # Install dependencies
     pnpm install
 
-    # Build the judge-runner image (required once, or after updates)
     docker build -t judge-runner:latest docker/judge-runner/
 
-    # Build the worker
     pnpm --filter @judge/shared build
     pnpm --filter @judge/worker build
 
-    # Set environment variables and start
-    export DATABASE_URL=postgresql://root:<password>@hkg1.clusters.zeabur.com:<port>/zeabur
-    export MINIO_ENDPOINT=minio.yourdomain.com
-    export MINIO_PORT=443
-    export MINIO_ACCESS_KEY=minio
-    export MINIO_SECRET_KEY=<your-minio-secret>
-    export MINIO_USE_SSL=true
+    export DATABASE_URL='postgresql://root:<password>@hkg1.clusters.zeabur.com:<port>/zeabur'
+    export MINIO_ENDPOINT='minio.yourdomain.com'
+    export MINIO_PORT='443'
+    export MINIO_ACCESS_KEY='minio'
+    export MINIO_SECRET_KEY='<your-minio-secret>'
+    export MINIO_USE_SSL='true'
     node apps/worker/dist/index.js
     ```
 
-    The worker will connect to the remote database, poll for pending judge jobs, run them in local Docker containers, and upload artifacts back to MinIO.
+    The worker will connect to the remote database, poll pending jobs, run them in local Docker containers, and upload artifacts back to MinIO.
 
   services:
     - name: PostgreSQL
@@ -244,6 +240,13 @@ spec:
           source: GITHUB
           repo: 1183262376
           branch: main
+          watchPaths:
+            - /apps/api
+            - /packages/shared
+            - /packages/config
+            - /package.json
+            - /pnpm-lock.yaml
+            - /pnpm-workspace.yaml
         ports:
           - id: web
             port: 8080
@@ -289,6 +292,11 @@ spec:
             default: "8080"
             expose: true
             readonly: true
+        healthCheck:
+          type: HTTP
+          port: web
+          http:
+            path: /api/health
 
     - name: Web
       icon: https://service-icons.zeabur.com/git/nodejs/default.svg
@@ -300,6 +308,13 @@ spec:
           source: GITHUB
           repo: 1183262376
           branch: main
+          watchPaths:
+            - /apps/web
+            - /packages/shared
+            - /packages/config
+            - /package.json
+            - /pnpm-lock.yaml
+            - /pnpm-workspace.yaml
         ports:
           - id: web
             port: 8080
@@ -327,6 +342,7 @@ spec:
       dependencies:
         - Web
         - API
+        - MinIO
       spec:
         source:
           image: caddy:2-alpine
@@ -368,7 +384,7 @@ spec:
 
 localization:
   zh-TW:
-    description: 前端作業繳交與自動評測平台，支援 Playwright 測試
+    description: 一鍵部署 emjudge 到 Zeabur，包含 PostgreSQL、MinIO、API、Web 與 Caddy；評測 Worker 需在外部機器執行。
     variables:
       - key: PUBLIC_DOMAIN
         type: DOMAIN
@@ -399,60 +415,56 @@ localization:
 
       | 服務       | 說明 |
       |-----------|------|
-      | PostgreSQL | 儲存所有應用程式資料 |
-      | MinIO      | 儲存繳交的作業與評測產物 |
-      | API        | Fastify REST API 後端（port 3000） |
-      | Web        | React SPA 建置後以靜態檔案服務（port 3001） |
-      | Caddy      | Reverse proxy：`/api/*` 轉發到 API，其餘轉發到 Web |
+      | PostgreSQL | 儲存應用資料與評測工作佇列 |
+      | MinIO      | 儲存作業上傳檔案與評測產物 |
+      | API        | 從此 repository 以 Docker 建置的 Fastify 後端 |
+      | Web        | 從此 repository 以 Docker 建置並由 Nginx 提供的 React SPA |
+      | Caddy      | 對外入口，將 `/api/*` 導到 API、`/img/*` 導到 MinIO，其餘導到 Web |
 
       ## 預設管理員帳號
 
-      部署完成後，使用以下帳號登入：
+      部署完成後可用以下帳號登入：
+
       - 帳號：`admin`
-      - 密碼：你在 `DEFAULT_ADMIN_PASSWORD` 設定的密碼
+      - 密碼：你在 `DEFAULT_ADMIN_PASSWORD` 設定的值
 
       ## 重要說明
 
-      - Judge Worker 需要 Docker 環境，必須在有 Docker 的機器上另外運行
-      - 資料庫 migration 會在 API 啟動時自動執行
+      - 這個模板會部署 Web、API、資料庫與物件儲存
+      - Judge Worker **不會**由這個模板部署到 Zeabur，因為它需要本機 Docker 權限來安全執行使用者提交內容
+      - API 啟動時會先自動執行資料庫 migration 與可重複執行的管理員 seed，再啟動伺服器
 
       ## Worker 設定（外部機器）
 
-      Worker 使用輪詢方式從資料庫取得 job，只需要**對外連出**到 PostgreSQL 和 MinIO，不需要開放任何入站 port。
+      Judge Worker 會輪詢資料庫取得工作，只需要能對外連到 PostgreSQL 與 MinIO，不需要開放任何入站 port。
 
       ### 1. 取得 PostgreSQL 外部連線字串
 
-      Port Forwarding 會自動啟用。在 Zeabur Dashboard 的 **PostgreSQL** 服務 → **Instructions** → 複製 **Connection String (external, for Worker)** 的值。
+      在 Zeabur Dashboard 開啟 **PostgreSQL** 服務，到 **Instructions** 複製 **Connection String (external, for Worker)**。
 
       ### 2. 開放 MinIO 外部連線
 
-      在 Zeabur Dashboard 的 **MinIO** 服務 → **Domains** 分頁 → 綁定一個 domain（例如 `minio.yourdomain.com`），讓 MinIO API 透過 HTTPS port 443 對外開放。
+      在 Zeabur Dashboard 開啟 **MinIO** 服務，進入 **Domains**，綁定一個 domain，例如 `minio.yourdomain.com`，讓它能透過 HTTPS `443` 對外提供存取。
 
       ### 3. 啟動 Worker
 
       ```bash
-      # Clone 專案
       git clone <your-repo>
       cd frontend-judge
-
-      # 安裝依賴
       pnpm install
 
-      # 建置 judge-runner 映像（第一次或更新後執行）
       docker build -t judge-runner:latest docker/judge-runner/
 
-      # 建置 worker
       pnpm --filter @judge/shared build
       pnpm --filter @judge/worker build
 
-      # 設定環境變數並啟動
-      export DATABASE_URL=postgresql://root:<password>@hkg1.clusters.zeabur.com:<port>/zeabur
-      export MINIO_ENDPOINT=minio.yourdomain.com
-      export MINIO_PORT=443
-      export MINIO_ACCESS_KEY=minio
-      export MINIO_SECRET_KEY=<your-minio-secret>
-      export MINIO_USE_SSL=true
+      export DATABASE_URL='postgresql://root:<password>@hkg1.clusters.zeabur.com:<port>/zeabur'
+      export MINIO_ENDPOINT='minio.yourdomain.com'
+      export MINIO_PORT='443'
+      export MINIO_ACCESS_KEY='minio'
+      export MINIO_SECRET_KEY='<your-minio-secret>'
+      export MINIO_USE_SSL='true'
       node apps/worker/dist/index.js
       ```
 
-      Worker 啟動後會連上遠端資料庫，持續輪詢待評測的 job，在本機 Docker 中執行，再將結果和 artifacts 上傳回 MinIO。
+      Worker 啟動後會連到遠端資料庫，持續輪詢待處理 job，在本機 Docker 執行評測，再把結果與 artifacts 上傳回 MinIO。
