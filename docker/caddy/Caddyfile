@@ -1,0 +1,19 @@
+:80 {
+  log
+  encode gzip zstd
+
+  handle /api/* {
+    reverse_proxy api:8080
+  }
+
+  handle /img/* {
+    uri strip_prefix /img
+    reverse_proxy minio:9000 {
+      header_up Host {upstream_hostport}
+    }
+  }
+
+  handle {
+    reverse_proxy web:8080
+  }
+}

@@ -1,0 +1,14 @@
+node_modules
+.pnpm-store
+.git
+.github
+.husky
+.cache
+dist
+coverage
+*.log
+.DS_Store
+apps/*/node_modules
+apps/*/dist
+packages/*/node_modules
+packages/*/dist
