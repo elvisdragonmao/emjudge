@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: emjudge
 spec:
-  description: One-click Zeabur deployment for emjudge with PostgreSQL, MinIO, API, Web, and Caddy. External worker required for grading.
+  description: A frontend assignment submission and auto-grading platform. External worker required for grading.
   icon: https://raw.githubusercontent.com/elvisdragonmao/emjudge/main/apps/web/public/ej.svg
   coverImage: https://raw.githubusercontent.com/elvisdragonmao/emjudge/main/apps/web/public/og.png
   tags:
@@ -384,7 +384,7 @@ spec:
 
 localization:
   zh-TW:
-    description: 一鍵部署 emjudge 到 Zeabur，包含 PostgreSQL、MinIO、API、Web 與 Caddy；評測 Worker 需在外部機器執行。
+    description: 前端作業繳交與自動評測平台。評測 Worker 需在外部機器執行。
     variables:
       - key: PUBLIC_DOMAIN
         type: DOMAIN
