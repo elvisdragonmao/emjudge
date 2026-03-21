@@ -186,7 +186,7 @@ Commonly used variables include:
 - `MINIO_ACCESS_KEY`
 - `MINIO_SECRET_KEY`
 - `MINIO_PUBLIC_BASE_URL`
-- `WORK_DIR`
+- `CACHE_ROOT_DIR`
 - `JUDGE_IMAGE`
 - `WORKER_ID`
 

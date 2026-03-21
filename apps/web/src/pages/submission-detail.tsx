@@ -227,7 +227,7 @@ export function SubmissionDetailPage() {
 							<h4 className="text-sm font-medium">{t("pages.submissionDetail.stages")}</h4>
 							<div className="flex flex-wrap gap-2">
 								{run.stages.map(stage => (
-									<Badge key={stage.id} variant={stage.state === "done" ? "success" : stage.state === "current" ? "info" : "outline"}>
+									<Badge key={stage.id} variant={stage.state === "done" ? "success" : stage.state === "current" ? "info" : stage.state === "failed" ? "destructive" : "outline"}>
 										{stage.label}
 									</Badge>
 								))}

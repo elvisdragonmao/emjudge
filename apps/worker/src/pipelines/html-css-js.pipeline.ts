@@ -25,7 +25,6 @@ export class HtmlCssJsPipeline implements JudgePipeline {
 		const xdgCacheDir = path.join(jobCacheDir, "xdg-cache");
 		const npmCacheDir = path.join(jobCacheDir, "npm-cache");
 		const tempDir = path.join(jobCacheDir, "tmp");
-		const containerCacheRoot = "/work/.cache";
 
 		this.log(submissionId, "Creating directories...");
 		// Create directories
