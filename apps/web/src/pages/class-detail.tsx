@@ -4,13 +4,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useAddClassMembers, useAssignments, useClassDetail, useClassScoreHistory, useReissueClassJoinCode, useRemoveClassMember, useUpdateClassJoinCodeSettings, useUsers } from "@/hooks/use-api";
+import { Switch } from "@/components/ui/switch";
+import {
+	useAddClassMembers,
+	useAssignments,
+	useAvailableClassMembers,
+	useClassDetail,
+	useClassScoreHistory,
+	useReissueClassJoinCode,
+	useRemoveClassMember,
+	useReorderAssignments,
+	useUpdateClassJoinCodeSettings
+} from "@/hooks/use-api";
 import { formatDate, i18n } from "@/i18n";
 import { getApiErrorMessage } from "@/lib/api";
-import { Plus, RotateCcw, UserMinus, UserPlus, Users, X } from "@/lib/icons";
+import { Copy, GripVertical, Plus, RotateCcw, UserMinus, UserPlus, Users, X } from "@/lib/icons";
 import { useAuth } from "@/stores/auth";
+import type { AssignmentSummary } from "@judge/shared";
 import { isStaff } from "@judge/shared";
-import { useState } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 
@@ -21,9 +33,11 @@ export function ClassDetailPage() {
 	const { data: cls, isLoading } = useClassDetail(id!);
 	const { data: scoreHistory } = useClassScoreHistory(id!);
 	const { data: assignments } = useAssignments(id!);
+	const { data: availableMembers, isLoading: isLoadingAvailableMembers } = useAvailableClassMembers(id!);
 
 	const addMembersMutation = useAddClassMembers(id!);
 	const removeMemberMutation = useRemoveClassMember(id!);
+	const reorderAssignmentsMutation = useReorderAssignments(id!);
 	const updateJoinCodeSettingsMutation = useUpdateClassJoinCodeSettings(id!);
 	const reissueJoinCodeMutation = useReissueClassJoinCode(id!);
 
@@ -32,7 +46,13 @@ export function ClassDetailPage() {
 	const [copyMessage, setCopyMessage] = useState("");
 	const [memberMessage, setMemberMessage] = useState("");
 	const [joinCodeMessage, setJoinCodeMessage] = useState("");
-	const { data: allUsers } = useUsers(1);
+	const [assignmentMessage, setAssignmentMessage] = useState("");
+	const [orderedAssignments, setOrderedAssignments] = useState<AssignmentSummary[]>([]);
+	const [draggingAssignmentId, setDraggingAssignmentId] = useState<string | null>(null);
+
+	useEffect(() => {
+		setOrderedAssignments(assignments ?? []);
+	}, [assignments]);
 
 	if (isLoading) {
 		return (
@@ -53,11 +73,12 @@ export function ClassDetailPage() {
 	}
 
 	const memberIds = new Set(cls.members?.map(member => member.id) ?? []);
-	const availableUsers = (allUsers?.users ?? []).filter(
+	const availableUsers = (availableMembers ?? []).filter(
 		candidate =>
 			!memberIds.has(candidate.id) &&
 			(searchQuery === "" || candidate.username.toLowerCase().includes(searchQuery.toLowerCase()) || candidate.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
+	const canManageAssignments = !!user && isStaff(user.role) && !reorderAssignmentsMutation.isPending;
 
 	const handleAddMember = (userId: string) => {
 		setMemberMessage("");
@@ -81,13 +102,65 @@ export function ClassDetailPage() {
 		setCopyMessage(t("pages.classDetail.joinCodeCopied"));
 	};
 
+	const moveAssignment = (items: AssignmentSummary[], sourceId: string, targetId: string) => {
+		const sourceIndex = items.findIndex(item => item.id === sourceId);
+		const targetIndex = items.findIndex(item => item.id === targetId);
+
+		if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+			return items;
+		}
+
+		const nextItems = [...items];
+		const [movedItem] = nextItems.splice(sourceIndex, 1);
+		if (!movedItem) {
+			return items;
+		}
+		nextItems.splice(targetIndex, 0, movedItem);
+		return nextItems;
+	};
+
+	const handleAssignmentDrop = (targetAssignmentId: string) => {
+		if (!draggingAssignmentId || draggingAssignmentId === targetAssignmentId) {
+			setDraggingAssignmentId(null);
+			return;
+		}
+
+		const previousAssignments = orderedAssignments;
+		const nextAssignments = moveAssignment(previousAssignments, draggingAssignmentId, targetAssignmentId);
+		setDraggingAssignmentId(null);
+
+		if (nextAssignments === previousAssignments) {
+			return;
+		}
+
+		setAssignmentMessage("");
+		setOrderedAssignments(nextAssignments);
+		reorderAssignmentsMutation.mutate(
+			{ assignmentIds: nextAssignments.map(item => item.id) },
+			{
+				onError: error => {
+					setOrderedAssignments(previousAssignments);
+					setAssignmentMessage(getApiErrorMessage(error, t("pages.classDetail.assignmentOrderFailed")));
+				}
+			}
+		);
+	};
+
 	return (
 		<div className="space-y-6">
 			<PageTitle title={cls.name} />
 
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between gap-4">
 				<div>
-					<h1 className="text-2xl font-bold">{cls.name}</h1>
+					<div className="flex flex-wrap items-center gap-3">
+						<h1 className="text-2xl font-bold">{cls.name}</h1>
+						{cls.joinCode && (
+							<Badge variant="outline" className="gap-2 border-[var(--color-success)]/30 bg-[var(--color-success)]/10 text-[var(--color-success)]">
+								<span className="h-2 w-2 rounded-full bg-[var(--color-success)]" />
+								{cls.joinCode.enabled ? t("pages.classDetail.joinCodeOpenTag") : t("pages.classDetail.joinCodeClosedTag")}
+							</Badge>
+						)}
+					</div>
 					<p className="text-muted-foreground">{cls.description}</p>
 				</div>
 				{user && isStaff(user.role) && (
@@ -116,26 +189,26 @@ export function ClassDetailPage() {
 					<CardContent className="space-y-4">
 						<div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 							<div>
-								<p className="text-sm font-medium">{cls.joinCode.enabled ? t("pages.classDetail.joinCodeEnabled") : t("pages.classDetail.joinCodeDisabled")}</p>
+								<p className="text-sm font-medium">{cls.joinCode.enabled ? t("pages.classDetail.joinCodeOpenTag") : t("pages.classDetail.joinCodeClosedTag")}</p>
 								<p className="text-xs text-muted-foreground">{t("pages.classDetail.joinCodeDescription")}</p>
 							</div>
-							<Button
-								size="sm"
-								variant={cls.joinCode.enabled ? "outline" : "default"}
-								disabled={updateJoinCodeSettingsMutation.isPending}
-								onClick={() => {
-									setJoinCodeMessage("");
-									updateJoinCodeSettingsMutation.mutate(
-										{ joinCodeEnabled: !cls.joinCode?.enabled },
-										{
-											onSuccess: data => setJoinCodeMessage(data.enabled ? t("pages.classDetail.joinCodeEnabled") : t("pages.classDetail.joinCodeDisabled")),
-											onError: error => setJoinCodeMessage(getApiErrorMessage(error, t("pages.classDetail.joinCodeActionFailed")))
-										}
-									);
-								}}
-							>
-								{cls.joinCode.enabled ? t("pages.classDetail.disableJoinCode") : t("pages.classDetail.enableJoinCode")}
-							</Button>
+							<div className="flex items-center gap-3 self-start md:self-center">
+								<Switch
+									checked={cls.joinCode.enabled}
+									disabled={updateJoinCodeSettingsMutation.isPending}
+									onCheckedChange={checked => {
+										setJoinCodeMessage("");
+										updateJoinCodeSettingsMutation.mutate(
+											{ joinCodeEnabled: checked },
+											{
+												onSuccess: data => setJoinCodeMessage(data.enabled ? t("pages.classDetail.joinCodeEnabled") : t("pages.classDetail.joinCodeDisabled")),
+												onError: error => setJoinCodeMessage(getApiErrorMessage(error, t("pages.classDetail.joinCodeActionFailed")))
+											}
+										);
+									}}
+								/>
+								<span className="text-sm text-muted-foreground">{cls.joinCode.enabled ? t("pages.classDetail.disableJoinCode") : t("pages.classDetail.enableJoinCode")}</span>
+							</div>
 						</div>
 
 						<div className="flex flex-col gap-3 rounded-lg border border-border p-4 md:flex-row md:items-center md:justify-between">
@@ -146,6 +219,7 @@ export function ClassDetailPage() {
 							</div>
 							<div className="flex gap-2">
 								<Button size="sm" variant="outline" onClick={handleCopyJoinCode} disabled={!cls.joinCode.code}>
+									<Copy />
 									{t("pages.classDetail.copyJoinCode")}
 								</Button>
 								<Button
@@ -173,14 +247,45 @@ export function ClassDetailPage() {
 
 			<div className="space-y-3">
 				<h2 className="text-lg font-semibold">{t("pages.classDetail.assignmentsTitle")}</h2>
+				{assignmentMessage && <p className="text-sm text-destructive">{assignmentMessage}</p>}
 				{assignments?.length === 0 && <p className="text-muted-foreground">{t("pages.classDetail.noAssignments")}</p>}
-				{assignments?.map(assignment => (
-					<Link key={assignment.id} to={`/assignments/${assignment.id}`} className="block">
-						<Card className="transition-shadow hover:shadow-md">
-							<CardContent className="flex items-center justify-between p-4">
-								<div>
-									<p className="font-medium">{assignment.title}</p>
-									<div className="mt-1 flex items-center gap-2">
+				{orderedAssignments.map(assignment => (
+					<Card
+						key={assignment.id}
+						className={`transition-shadow hover:shadow-md ${draggingAssignmentId === assignment.id ? "opacity-70" : ""}`}
+						onDragOver={event => {
+							if (canManageAssignments) {
+								event.preventDefault();
+							}
+						}}
+						onDrop={() => {
+							if (canManageAssignments) {
+								handleAssignmentDrop(assignment.id);
+							}
+						}}
+					>
+						<CardContent className="flex items-center justify-between gap-4 p-4">
+							<div className="flex min-w-0 items-center gap-3">
+								{canManageAssignments && (
+									<button
+										type="button"
+										draggable
+										onDragStart={(event: DragEvent<HTMLButtonElement>) => {
+											event.dataTransfer.effectAllowed = "move";
+											setDraggingAssignmentId(assignment.id);
+										}}
+										onDragEnd={() => setDraggingAssignmentId(null)}
+										className="cursor-grab rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground active:cursor-grabbing"
+										aria-label={t("pages.classDetail.reorderAssignments")}
+									>
+										<GripVertical className="size-4" />
+									</button>
+								)}
+								<div className="min-w-0">
+									<Link to={`/assignments/${assignment.id}`} className="font-medium hover:underline">
+										{assignment.title}
+									</Link>
+									<div className="mt-1 flex flex-wrap items-center gap-2">
 										<Badge variant="secondary">{t(`assignmentTypes.${assignment.type}`)}</Badge>
 										{assignment.dueDate && (
 											<span className="text-xs text-muted-foreground">
@@ -191,14 +296,14 @@ export function ClassDetailPage() {
 										)}
 									</div>
 								</div>
-								<div className="text-sm text-muted-foreground">
-									{t("pages.classDetail.submissionsCount", {
-										count: assignment.submissionCount
-									})}
-								</div>
-							</CardContent>
-						</Card>
-					</Link>
+							</div>
+							<div className="text-sm text-muted-foreground">
+								{t("pages.classDetail.submissionsCount", {
+									count: assignment.submissionCount
+								})}
+							</div>
+						</CardContent>
+					</Card>
 				))}
 			</div>
 
@@ -221,7 +326,10 @@ export function ClassDetailPage() {
 							<CardContent className="space-y-3 pt-4">
 								{memberMessage && <p className={`text-sm ${addMembersMutation.isError || removeMemberMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{memberMessage}</p>}
 								<Input placeholder={t("pages.classDetail.searchPlaceholder")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
-								{availableUsers.length === 0 && <p className="text-sm text-muted-foreground">{searchQuery ? t("pages.classDetail.noMatchingUsers") : t("pages.classDetail.noAvailableUsers")}</p>}
+								{isLoadingAvailableMembers && <p className="text-sm text-muted-foreground">{t("common.loading")}</p>}
+								{!isLoadingAvailableMembers && availableUsers.length === 0 && (
+									<p className="text-sm text-muted-foreground">{searchQuery ? t("pages.classDetail.noMatchingUsers") : t("pages.classDetail.noAvailableUsers")}</p>
+								)}
 								<div className="max-h-60 space-y-1 overflow-auto">
 									{availableUsers.map(candidate => (
 										<div key={candidate.id} className="flex items-center justify-between rounded border border-border px-3 py-2">

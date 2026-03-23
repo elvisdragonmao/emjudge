@@ -14,6 +14,7 @@ import type {
 	MessageResponse,
 	RegisterRequest,
 	RegistrationStatusResponse,
+	ReorderAssignmentsRequest,
 	SubmissionDetail,
 	SubmissionListResponse,
 	UpdateClassJoinCodeSettingsRequest,
@@ -107,6 +108,14 @@ export function useClassScoreHistory(classId: string) {
 	});
 }
 
+export function useAvailableClassMembers(classId: string) {
+	return useQuery({
+		queryKey: queryKeys.availableClassMembers(classId),
+		queryFn: () => api.get<UserSummary[]>(`/classes/${classId}/available-members`),
+		enabled: !!classId
+	});
+}
+
 export function useCreateClass() {
 	const qc = useQueryClient();
 	return useMutation({
@@ -129,7 +138,10 @@ export function useAddClassMembers(classId: string) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (userIds: string[]) => api.post<MessageResponse>(`/classes/${classId}/members`, { userIds }),
-		onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) })
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) });
+			qc.invalidateQueries({ queryKey: queryKeys.availableClassMembers(classId) });
+		}
 	});
 }
 
@@ -137,7 +149,10 @@ export function useRemoveClassMember(classId: string) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (userId: string) => api.delete<MessageResponse>(`/classes/${classId}/members`, { userId }),
-		onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) })
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) });
+			qc.invalidateQueries({ queryKey: queryKeys.availableClassMembers(classId) });
+		}
 	});
 }
 
@@ -167,6 +182,14 @@ export function useAssignments(classId: string) {
 		queryKey: queryKeys.assignments(classId),
 		queryFn: () => api.get<AssignmentSummary[]>(`/classes/${classId}/assignments`),
 		enabled: !!classId
+	});
+}
+
+export function useReorderAssignments(classId: string) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (data: ReorderAssignmentsRequest) => api.patch<MessageResponse>(`/classes/${classId}/assignments/order`, data),
+		onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.assignments(classId) })
 	});
 }
 

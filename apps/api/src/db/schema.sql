@@ -85,10 +85,25 @@ CREATE TABLE IF NOT EXISTS assignments (
   type                      assignment_type NOT NULL DEFAULT 'html-css-js',
   due_date                  TIMESTAMPTZ,
   allow_multiple_submissions BOOLEAN NOT NULL DEFAULT true,
+  sort_order                INTEGER NOT NULL DEFAULT 0,
   created_by                UUID NOT NULL REFERENCES users(id),
   created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+
+WITH ordered_assignments AS (
+  SELECT
+    id,
+    ROW_NUMBER() OVER (PARTITION BY class_id ORDER BY created_at DESC, id DESC) AS next_sort_order
+  FROM assignments
+)
+UPDATE assignments a
+SET sort_order = ordered_assignments.next_sort_order
+FROM ordered_assignments
+WHERE a.id = ordered_assignments.id
+  AND a.sort_order = 0;
 
 CREATE INDEX IF NOT EXISTS idx_assignments_class ON assignments (class_id);
 

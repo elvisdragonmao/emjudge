@@ -6,7 +6,8 @@
 		"save": "Save",
 		"edit": "Edit",
 		"preview": "Preview",
-		"confirm": "Confirm"
+		"confirm": "Confirm",
+		"copy": "Copy"
 	},
 	"languages": {
 		"zh-TW": "Traditional Chinese",
@@ -478,7 +479,8 @@
 			"fail": "FAIL",
 			"points": "{{count}} pts",
 			"timeoutHint": "This grading run timed out inside the container. Usually npm install/build took too long or the app got stuck.",
-			"artifacts": "Screenshots and artifacts"
+			"artifacts": "Screenshots and artifacts",
+			"logCopied": "Copied"
 		},
 		"classDetail": {
 			"loadingTitle": "Loading class",
@@ -513,7 +515,11 @@
 			"roleHeader": "Role",
 			"actionsHeader": "Actions",
 			"remove": "Remove",
-			"noMembers": "No members yet"
+			"noMembers": "No members yet",
+			"joinCodeOpenTag": "Open",
+			"joinCodeClosedTag": "Disabled",
+			"assignmentOrderFailed": "Failed to update assignment order. Please try again later.",
+			"reorderAssignments": "Reorder assignments"
 		},
 		"admin": {
 			"title": "Admin",
@@ -573,12 +579,12 @@
 		"error": "Error"
 	},
 	"judgeStages": {
-		"download": "Download files (MinIO)",
+		"download": "Download files",
 		"prepare": "Prepare judge environment",
 		"install": "Install dependencies (pnpm)",
 		"build": "Build project",
 		"test": "Run tests (Playwright)",
-		"upload": "Upload artifacts (MinIO)",
+		"upload": "Upload artifacts",
 		"persist": "Persist results"
 	}
 }

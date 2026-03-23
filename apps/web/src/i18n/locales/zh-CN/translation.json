@@ -6,7 +6,8 @@
 		"save": "保存",
 		"edit": "编辑",
 		"preview": "预览",
-		"confirm": "确认"
+		"confirm": "确认",
+		"copy": "复制"
 	},
 	"languages": {
 		"zh-TW": "繁體中文",
@@ -478,7 +479,8 @@
 			"fail": "FAIL",
 			"points": "{{count}} 分",
 			"timeoutHint": "本次评测在容器内超时，通常是 npm install/build 太久或程序卡住。",
-			"artifacts": "截图与附件"
+			"artifacts": "截图与附件",
+			"logCopied": "已复制"
 		},
 		"classDetail": {
 			"loadingTitle": "班级加载中",
@@ -513,7 +515,11 @@
 			"roleHeader": "角色",
 			"actionsHeader": "操作",
 			"remove": "移除",
-			"noMembers": "暂无成员"
+			"noMembers": "暂无成员",
+			"joinCodeOpenTag": "开放中",
+			"joinCodeClosedTag": "停用中",
+			"assignmentOrderFailed": "更新作业顺序失败，请稍后再试",
+			"reorderAssignments": "拖动排序作业"
 		},
 		"admin": {
 			"title": "管理后台",
@@ -573,12 +579,12 @@
 		"error": "错误"
 	},
 	"judgeStages": {
-		"download": "下载文件（MinIO）",
+		"download": "下载文件",
 		"prepare": "准备评测环境",
 		"install": "安装依赖（pnpm）",
 		"build": "构建项目（build）",
 		"test": "执行测试（Playwright）",
-		"upload": "上传附件（MinIO）",
+		"upload": "上传附件",
 		"persist": "整理结果"
 	}
 }

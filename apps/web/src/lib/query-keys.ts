@@ -4,6 +4,7 @@ export const queryKeys = {
 	adminRegistrationSettings: () => ["admin", "registration-settings"] as const,
 	me: () => ["me"] as const,
 	users: (page?: number) => ["users", { page }] as const,
+	availableClassMembers: (id: string) => ["classes", id, "available-members"] as const,
 	classes: () => ["classes"] as const,
 	classDetail: (id: string) => ["classes", id] as const,
 	classScoreHistory: (id: string) => ["classes", id, "score-history"] as const,
