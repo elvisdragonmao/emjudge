@@ -46,6 +46,11 @@ export const UpdateAssignmentRequest = CreateAssignmentRequest.partial()
 	});
 export type UpdateAssignmentRequest = z.infer<typeof UpdateAssignmentRequest>;
 
+export const ReorderAssignmentsRequest = z.object({
+	assignmentIds: z.array(z.string().uuid()).min(1)
+});
+export type ReorderAssignmentsRequest = z.infer<typeof ReorderAssignmentsRequest>;
+
 export const AssignmentSummary = z.object({
 	id: z.string().uuid(),
 	classId: z.string().uuid(),
@@ -53,6 +58,7 @@ export const AssignmentSummary = z.object({
 	type: z.enum(["html-css-js", "react"]),
 	dueDate: z.string().datetime().nullable(),
 	allowMultipleSubmissions: z.boolean(),
+	sortOrder: z.number().int(),
 	submissionCount: z.number(),
 	createdAt: z.string().datetime()
 });

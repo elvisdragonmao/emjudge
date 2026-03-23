@@ -11,7 +11,8 @@ import {
 	MessageResponse,
 	RemoveClassMemberRequest,
 	UpdateClassJoinCodeSettingsRequest,
-	UpdateClassRequest
+	UpdateClassRequest,
+	UserSummary
 } from "@judge/shared";
 import type { FastifyInstance } from "fastify";
 import { authSecurity, createRouteSchema, toJsonSchema, withErrorResponses } from "../lib/openapi.js";
@@ -41,6 +42,29 @@ export async function classRoutes(app: FastifyInstance) {
 				return classService.listClasses();
 			}
 			return classService.listClassesForUser(request.userId);
+		}
+	);
+
+	app.get(
+		"/api/classes/:id/available-members",
+		{
+			preHandler: requireRole("admin", "teacher"),
+			schema: createRouteSchema({
+				tags: ["Classes"],
+				summary: "List users available to add to class",
+				security: authSecurity,
+				params: toJsonSchema(IdParam, "AvailableClassMembersIdParam"),
+				response: withErrorResponses(
+					{
+						200: toJsonSchema(UserSummary.array(), "AvailableClassMembersResponse")
+					},
+					[401, 403]
+				)
+			})
+		},
+		async request => {
+			const { id } = IdParam.parse(request.params);
+			return classService.listAvailableMembers(id);
 		}
 	);
 

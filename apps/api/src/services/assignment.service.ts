@@ -9,6 +9,7 @@ interface AssignmentRow {
 	type: string;
 	due_date: Date | null;
 	allow_multiple_submissions: boolean;
+	sort_order: number;
 	created_by: string;
 	created_at: Date;
 	submission_count?: string;
@@ -33,6 +34,7 @@ function toSummary(row: AssignmentRow) {
 		type: row.type as "html-css-js" | "react",
 		dueDate: row.due_date?.toISOString() ?? null,
 		allowMultipleSubmissions: row.allow_multiple_submissions,
+		sortOrder: row.sort_order,
 		submissionCount: parseInt(row.submission_count ?? "0", 10),
 		createdAt: row.created_at.toISOString()
 	};
@@ -44,7 +46,7 @@ export async function listByClass(classId: string) {
        (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count
      FROM assignments a
      WHERE a.class_id = $1
-     ORDER BY a.created_at DESC`,
+	     ORDER BY a.sort_order ASC, a.created_at DESC, a.id DESC`,
 		[classId]
 	);
 	return rows.map(toSummary);
@@ -82,10 +84,18 @@ export async function getById(id: string) {
 
 export async function create(data: CreateAssignmentRequest, createdBy: string) {
 	return transaction(async client => {
+		const sortOrderResult = await client.query<{ next_sort_order: number }>(
+			`SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_sort_order
+       FROM assignments
+       WHERE class_id = $1`,
+			[data.classId]
+		);
+		const nextSortOrder = sortOrderResult.rows[0]?.next_sort_order ?? 1;
+
 		const result = await client.query(
-			`INSERT INTO assignments (class_id, title, description, type, due_date, allow_multiple_submissions, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-			[data.classId, data.title, data.description, data.type, data.dueDate ?? null, data.allowMultipleSubmissions, createdBy]
+			`INSERT INTO assignments (class_id, title, description, type, due_date, allow_multiple_submissions, sort_order, created_by)
+	       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+			[data.classId, data.title, data.description, data.type, data.dueDate ?? null, data.allowMultipleSubmissions, nextSortOrder, createdBy]
 		);
 		const assignmentId = result.rows[0]!.id as string;
 
@@ -171,4 +181,24 @@ export async function update(id: string, data: UpdateAssignmentRequest) {
 
 export async function deleteAssignment(id: string) {
 	await query("DELETE FROM assignments WHERE id = $1", [id]);
+}
+
+export async function reorderByClass(classId: string, assignmentIds: string[]) {
+	await transaction(async client => {
+		const existingAssignments = await client.query<{ id: string }>("SELECT id FROM assignments WHERE class_id = $1", [classId]);
+		const existingIds = existingAssignments.rows.map(row => row.id);
+
+		if (existingIds.length !== assignmentIds.length) {
+			throw new Error("Assignment list does not match class assignments");
+		}
+
+		const inputIds = new Set(assignmentIds);
+		if (inputIds.size !== assignmentIds.length || existingIds.some(id => !inputIds.has(id))) {
+			throw new Error("Assignment list does not match class assignments");
+		}
+
+		for (const [index, assignmentId] of assignmentIds.entries()) {
+			await client.query("UPDATE assignments SET sort_order = $1 WHERE id = $2 AND class_id = $3", [index + 1, assignmentId, classId]);
+		}
+	});
 }

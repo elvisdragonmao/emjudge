@@ -1,4 +1,4 @@
-import { AssignmentDetail, AssignmentSummary, CreateAssignmentRequest, IdParam, MessageResponse, UpdateAssignmentRequest } from "@judge/shared";
+import { AssignmentDetail, AssignmentSummary, CreateAssignmentRequest, IdParam, MessageResponse, ReorderAssignmentsRequest, UpdateAssignmentRequest } from "@judge/shared";
 import type { FastifyInstance } from "fastify";
 import { authSecurity, createRouteSchema, toJsonSchema, withErrorResponses } from "../lib/openapi.js";
 import { authenticate, requireRole } from "../middleware/auth.js";
@@ -26,6 +26,32 @@ export async function assignmentRoutes(app: FastifyInstance) {
 		async request => {
 			const { id } = IdParam.parse(request.params);
 			return assignmentService.listByClass(id);
+		}
+	);
+
+	app.patch(
+		"/api/classes/:id/assignments/order",
+		{
+			preHandler: requireRole("admin", "teacher"),
+			schema: createRouteSchema({
+				tags: ["Assignments"],
+				summary: "Reorder assignments for class",
+				security: authSecurity,
+				params: toJsonSchema(IdParam, "ReorderAssignmentsClassIdParam"),
+				body: toJsonSchema(ReorderAssignmentsRequest, "ReorderAssignmentsRequest"),
+				response: withErrorResponses(
+					{
+						200: toJsonSchema(MessageResponse, "AssignmentsReorderedResponse")
+					},
+					[400, 401, 403]
+				)
+			})
+		},
+		async request => {
+			const { id } = IdParam.parse(request.params);
+			const body = ReorderAssignmentsRequest.parse(request.body);
+			await assignmentService.reorderByClass(id, body.assignmentIds);
+			return { message: "作業順序已更新" };
 		}
 	);
 

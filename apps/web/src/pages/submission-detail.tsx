@@ -6,7 +6,7 @@ import { useRejudgeSubmission, useSubmissionDetail } from "@/hooks/use-api";
 import { useRefetchCountdown } from "@/hooks/use-refetch-countdown";
 import { formatDateTime } from "@/i18n";
 import { api, getApiErrorMessage } from "@/lib/api";
-import { ArrowLeft, Download, RotateCcw } from "@/lib/icons";
+import { ArrowLeft, Copy, Download, RotateCcw } from "@/lib/icons";
 import { getJudgeStages, sanitizeJudgeLog } from "@/lib/judge-log";
 import { getSubmissionStatusLabel, getSubmissionStatusVariant, isSubmissionActive } from "@/lib/submission-status";
 import { useAuth } from "@/stores/auth";
@@ -56,6 +56,7 @@ export function SubmissionDetailPage() {
 	const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
 	const [downloadError, setDownloadError] = useState<string | null>(null);
 	const [rejudgeMessage, setRejudgeMessage] = useState<string | null>(null);
+	const [copiedRunId, setCopiedRunId] = useState<string | null>(null);
 
 	const handleDownloadFile = useCallback(
 		async (fileId: string) => {
@@ -76,6 +77,14 @@ export function SubmissionDetailPage() {
 
 	const isInQueue = submission ? isSubmissionActive(submission.status) : false;
 	const refreshCountdown = useRefetchCountdown(isInQueue, 5000, dataUpdatedAt);
+
+	const handleCopyLog = useCallback(async (runId: string, log: string) => {
+		await navigator.clipboard.writeText(log);
+		setCopiedRunId(runId);
+		window.setTimeout(() => {
+			setCopiedRunId(current => (current === runId ? null : current));
+		}, 2000);
+	}, []);
 
 	if (isLoading) {
 		return (
@@ -183,9 +192,12 @@ export function SubmissionDetailPage() {
 					{downloadError && <p className="mb-2 text-xs text-destructive">{downloadError}</p>}
 					<div className="space-y-1">
 						{submission.files.map(file => (
-							<div key={file.id} className="flex items-center justify-between text-sm">
-								<div className="flex items-center gap-2">
+							<div key={file.id} className="flex items-center justify-between gap-3 text-sm">
+								<div className="min-w-0 flex-1">
 									<span className="font-mono text-xs">{file.path}</span>
+								</div>
+								<div className="flex items-center gap-2">
+									<span className="whitespace-nowrap text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</span>
 									{canDownloadFiles && (
 										<Button size="sm" variant="outline" onClick={() => handleDownloadFile(file.id)} disabled={downloadingFileId === file.id}>
 											<Download />
@@ -193,7 +205,6 @@ export function SubmissionDetailPage() {
 										</Button>
 									)}
 								</div>
-								<span className="text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</span>
 							</div>
 						))}
 					</div>
@@ -267,7 +278,18 @@ export function SubmissionDetailPage() {
 
 						{run.cleanLog && (
 							<div className="space-y-2">
-								<h4 className="text-sm font-medium">Log</h4>
+								{(() => {
+									const cleanLog = run.cleanLog;
+									return (
+										<div className="flex items-center justify-between gap-2">
+											<h4 className="text-sm font-medium">Log</h4>
+											<Button size="sm" variant="outline" onClick={() => void handleCopyLog(run.id, cleanLog)}>
+												<Copy />
+												{copiedRunId === run.id ? t("pages.submissionDetail.logCopied") : t("common.copy")}
+											</Button>
+										</div>
+									);
+								})()}
 								{run.cleanLog.includes("ETIMEDOUT") && <p className="text-xs text-[var(--color-running)]">{t("pages.submissionDetail.timeoutHint")}</p>}
 								<pre className="max-h-60 overflow-auto rounded bg-muted p-3 text-xs">{run.cleanLog}</pre>
 							</div>

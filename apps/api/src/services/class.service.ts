@@ -158,6 +158,36 @@ export async function addMembers(classId: string, userIds: string[]) {
 	}
 }
 
+export async function listAvailableMembers(classId: string) {
+	const users = await queryMany<{
+		id: string;
+		username: string;
+		display_name: string;
+		role: string;
+		created_at: Date;
+	}>(
+		`SELECT u.id, u.username, u.display_name, u.role, u.created_at
+     FROM users u
+     WHERE u.is_active = true
+       AND NOT EXISTS (
+         SELECT 1
+         FROM class_members cm
+         WHERE cm.class_id = $1 AND cm.user_id = u.id
+       )
+     ORDER BY u.role ASC, u.username ASC`,
+		[classId]
+	);
+
+	return users.map(user => ({
+		id: user.id,
+		username: user.username,
+		displayName: user.display_name,
+		role: user.role as "admin" | "teacher" | "student",
+		classes: [],
+		createdAt: user.created_at.toISOString()
+	}));
+}
+
 export async function getJoinCodeSettings(classId: string) {
 	const row = await queryOne<ClassRow>("SELECT * FROM classes WHERE id = $1", [classId]);
 	if (!row) return null;
