@@ -4,7 +4,7 @@ import { LineChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 echarts.use([LineChart, TitleComponent, TooltipComponent, GridComponent, LegendComponent, CanvasRenderer]);
 
@@ -16,6 +16,7 @@ interface ScoreChartProps {
 export function ScoreChart({ data, className }: ScoreChartProps) {
 	const chartRef = useRef<HTMLDivElement>(null);
 	const instanceRef = useRef<echarts.ECharts | null>(null);
+	const [chartHeight, setChartHeight] = useState(300);
 
 	useEffect(() => {
 		if (!chartRef.current) return;
@@ -68,6 +69,34 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 			itemStyle: { color: seriesColors[index % seriesColors.length] || accent }
 		}));
 
+		const estimateLegendRows = (labels: string[], containerWidth: number) => {
+			const availableWidth = Math.max(containerWidth - 48, 160);
+			let rows = 1;
+			let rowWidth = 0;
+
+			for (const label of labels) {
+				const itemWidth = Math.max(56, label.length * 8 + 46);
+				if (rowWidth + itemWidth > availableWidth) {
+					rows += 1;
+					rowWidth = itemWidth;
+				} else {
+					rowWidth += itemWidth;
+				}
+			}
+
+			return rows;
+		};
+
+		const legendRows = estimateLegendRows(
+			series.map(item => item.name),
+			chartRef.current.clientWidth
+		);
+		const legendTop = 28;
+		const legendRowHeight = 24;
+		const gridTop = legendTop + legendRows * legendRowHeight + 16;
+		const nextHeight = Math.max(300, 260 + legendRows * legendRowHeight);
+		setChartHeight(previousHeight => (previousHeight === nextHeight ? previousHeight : nextHeight));
+
 		const option: echarts.EChartsCoreOption = {
 			color: seriesColors,
 			title: {
@@ -76,7 +105,7 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 				textStyle: { fontSize: 14, fontWeight: 500, color: foreground }
 			},
 			legend: {
-				top: 28,
+				top: legendTop,
 				textStyle: { color: mutedForeground }
 			},
 			tooltip: {
@@ -100,6 +129,7 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 				}
 			},
 			grid: {
+				top: gridTop,
 				left: "3%",
 				right: "4%",
 				bottom: "3%",
@@ -126,7 +156,18 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 
 		chart.setOption(option);
 
-		const handleResize = () => chart.resize();
+		const handleResize = () => {
+			const width = chartRef.current?.clientWidth ?? 0;
+			const rows = estimateLegendRows(
+				series.map(item => item.name),
+				width
+			);
+			const resizedGridTop = legendTop + rows * legendRowHeight + 16;
+			const resizedHeight = Math.max(300, 260 + rows * legendRowHeight);
+			setChartHeight(previousHeight => (previousHeight === resizedHeight ? previousHeight : resizedHeight));
+			chart.setOption({ grid: { top: resizedGridTop } });
+			chart.resize();
+		};
 		window.addEventListener("resize", handleResize);
 
 		return () => {
@@ -135,5 +176,5 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 		};
 	}, [data]);
 
-	return <div ref={chartRef} className={className} style={{ height: 300 }} />;
+	return <div ref={chartRef} className={className} style={{ height: chartHeight }} />;
 }

@@ -56,7 +56,7 @@
 			"userFiles": "@{{username}} / {{count}} files"
 		},
 		"scoreChart": {
-			"title": "Class cumulative score trend",
+			"title": "Scoreboard",
 			"tooltip": "{{time}}<br/>{{userName}}: {{value}}<br/>Latest assignment growth: {{assignmentTitle}}"
 		},
 		"fileUploader": {

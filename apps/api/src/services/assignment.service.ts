@@ -9,11 +9,36 @@ interface AssignmentRow {
 	type: string;
 	due_date: Date | null;
 	allow_multiple_submissions: boolean;
-	sort_order: number;
+	sort_order?: number;
 	created_by: string;
 	created_at: Date;
 	submission_count?: string;
 	class_name?: string;
+}
+
+let sortOrderColumnEnsured = false;
+
+async function ensureSortOrderColumn() {
+	if (sortOrderColumnEnsured) {
+		return;
+	}
+
+	await query("ALTER TABLE assignments ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0");
+	await query(
+		`WITH ordered_assignments AS (
+		   SELECT
+		     id,
+		     ROW_NUMBER() OVER (PARTITION BY class_id ORDER BY created_at DESC, id DESC) AS next_sort_order
+		   FROM assignments
+		 )
+		 UPDATE assignments a
+		 SET sort_order = ordered_assignments.next_sort_order
+		 FROM ordered_assignments
+		 WHERE a.id = ordered_assignments.id
+		   AND a.sort_order = 0`
+	);
+
+	sortOrderColumnEnsured = true;
 }
 
 interface SpecRow {
@@ -34,13 +59,15 @@ function toSummary(row: AssignmentRow) {
 		type: row.type as "html-css-js" | "react",
 		dueDate: row.due_date?.toISOString() ?? null,
 		allowMultipleSubmissions: row.allow_multiple_submissions,
-		sortOrder: row.sort_order,
+		sortOrder: row.sort_order ?? 0,
 		submissionCount: parseInt(row.submission_count ?? "0", 10),
 		createdAt: row.created_at.toISOString()
 	};
 }
 
 export async function listByClass(classId: string) {
+	await ensureSortOrderColumn();
+
 	const rows = await queryMany<AssignmentRow>(
 		`SELECT a.*,
        (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count
@@ -83,6 +110,8 @@ export async function getById(id: string) {
 }
 
 export async function create(data: CreateAssignmentRequest, createdBy: string) {
+	await ensureSortOrderColumn();
+
 	return transaction(async client => {
 		const sortOrderResult = await client.query<{ next_sort_order: number }>(
 			`SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_sort_order
@@ -184,6 +213,8 @@ export async function deleteAssignment(id: string) {
 }
 
 export async function reorderByClass(classId: string, assignmentIds: string[]) {
+	await ensureSortOrderColumn();
+
 	await transaction(async client => {
 		const existingAssignments = await client.query<{ id: string }>("SELECT id FROM assignments WHERE class_id = $1", [classId]);
 		const existingIds = existingAssignments.rows.map(row => row.id);
