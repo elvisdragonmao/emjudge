@@ -30,7 +30,8 @@ export async function assignmentRoutes(app: FastifyInstance) {
 			if (!canView) {
 				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
-			return assignmentService.listByClass(id);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			return assignmentService.listByClass(id, canManage);
 		}
 	);
 
@@ -92,6 +93,12 @@ export async function assignmentRoutes(app: FastifyInstance) {
 			const canView = await classService.canViewClass(request.userId, request.userRole, assignment.classId);
 			if (!canView) {
 				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
+
+			const canManage = await classService.canManageClass(request.userId, request.userRole, assignment.classId);
+			const isVisibleToStudents = assignment.status === "published" && (!assignment.publishedAt || new Date(assignment.publishedAt).getTime() <= Date.now());
+			if (!canManage && !isVisibleToStudents) {
+				return reply.status(404).send({ error: "作業不存在", statusCode: 404 });
 			}
 
 			return assignment;

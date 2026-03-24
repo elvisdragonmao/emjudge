@@ -7,6 +7,8 @@ interface AssignmentRow {
 	title: string;
 	description: string;
 	type: string;
+	status?: "draft" | "published";
+	published_at?: Date | null;
 	due_date: Date | null;
 	allow_multiple_submissions: boolean;
 	sort_order?: number;
@@ -17,6 +19,7 @@ interface AssignmentRow {
 }
 
 let sortOrderColumnEnsured = false;
+let publicationColumnsEnsured = false;
 
 async function ensureSortOrderColumn() {
 	if (sortOrderColumnEnsured) {
@@ -41,6 +44,17 @@ async function ensureSortOrderColumn() {
 	sortOrderColumnEnsured = true;
 }
 
+async function ensurePublicationColumns() {
+	if (publicationColumnsEnsured) {
+		return;
+	}
+
+	await query("ALTER TABLE assignments ADD COLUMN IF NOT EXISTS status assignment_status NOT NULL DEFAULT 'published'");
+	await query("ALTER TABLE assignments ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ");
+
+	publicationColumnsEnsured = true;
+}
+
 interface SpecRow {
 	id: string;
 	assignment_id: string;
@@ -57,6 +71,8 @@ function toSummary(row: AssignmentRow) {
 		classId: row.class_id,
 		title: row.title,
 		type: row.type as "html-css-js" | "react",
+		status: row.status ?? "published",
+		publishedAt: row.published_at?.toISOString() ?? null,
 		dueDate: row.due_date?.toISOString() ?? null,
 		allowMultipleSubmissions: row.allow_multiple_submissions,
 		sortOrder: row.sort_order ?? 0,
@@ -65,21 +81,25 @@ function toSummary(row: AssignmentRow) {
 	};
 }
 
-export async function listByClass(classId: string) {
+export async function listByClass(classId: string, includeUnpublished = false) {
 	await ensureSortOrderColumn();
+	await ensurePublicationColumns();
 
 	const rows = await queryMany<AssignmentRow>(
 		`SELECT a.*,
        (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count
      FROM assignments a
-     WHERE a.class_id = $1
+      WHERE a.class_id = $1
+	       AND ($2::boolean = true OR (a.status = 'published' AND (a.published_at IS NULL OR a.published_at <= NOW())))
 	     ORDER BY a.sort_order ASC, a.created_at DESC, a.id DESC`,
-		[classId]
+		[classId, includeUnpublished]
 	);
 	return rows.map(toSummary);
 }
 
 export async function getById(id: string) {
+	await ensurePublicationColumns();
+
 	const row = await queryOne<AssignmentRow>(
 		`SELECT a.*,
        c.name as class_name,
@@ -111,6 +131,7 @@ export async function getById(id: string) {
 
 export async function create(data: CreateAssignmentRequest, createdBy: string) {
 	await ensureSortOrderColumn();
+	await ensurePublicationColumns();
 
 	return transaction(async client => {
 		const sortOrderResult = await client.query<{ next_sort_order: number }>(
@@ -122,9 +143,9 @@ export async function create(data: CreateAssignmentRequest, createdBy: string) {
 		const nextSortOrder = sortOrderResult.rows[0]?.next_sort_order ?? 1;
 
 		const result = await client.query(
-			`INSERT INTO assignments (class_id, title, description, type, due_date, allow_multiple_submissions, sort_order, created_by)
-	       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-			[data.classId, data.title, data.description, data.type, data.dueDate ?? null, data.allowMultipleSubmissions, nextSortOrder, createdBy]
+			`INSERT INTO assignments (class_id, title, description, type, status, published_at, due_date, allow_multiple_submissions, sort_order, created_by)
+	       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+			[data.classId, data.title, data.description, data.type, data.status, data.publishedAt ?? null, data.dueDate ?? null, data.allowMultipleSubmissions, nextSortOrder, createdBy]
 		);
 		const assignmentId = result.rows[0]!.id as string;
 
@@ -139,6 +160,8 @@ export async function create(data: CreateAssignmentRequest, createdBy: string) {
 }
 
 export async function update(id: string, data: UpdateAssignmentRequest) {
+	await ensurePublicationColumns();
+
 	await transaction(async client => {
 		const sets: string[] = [];
 		const params: unknown[] = [];
@@ -155,6 +178,14 @@ export async function update(id: string, data: UpdateAssignmentRequest) {
 		if (data.type !== undefined) {
 			sets.push(`type = $${idx++}`);
 			params.push(data.type);
+		}
+		if (data.status !== undefined) {
+			sets.push(`status = $${idx++}`);
+			params.push(data.status);
+		}
+		if (data.publishedAt !== undefined) {
+			sets.push(`published_at = $${idx++}`);
+			params.push(data.publishedAt);
 		}
 		if (data.dueDate !== undefined) {
 			sets.push(`due_date = $${idx++}`);

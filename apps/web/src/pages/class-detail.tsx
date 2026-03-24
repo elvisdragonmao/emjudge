@@ -338,6 +338,10 @@ export function ClassDetailPage() {
 										<p className="truncate font-medium hover:underline">{assignment.title}</p>
 										<div className="mt-1 flex flex-wrap items-center gap-2">
 											<Badge variant="secondary">{t(`assignmentTypes.${assignment.type}`)}</Badge>
+											{assignment.status === "draft" && <Badge variant="outline">{t("pages.assignmentForm.statusDraft")}</Badge>}
+											{assignment.status === "published" && assignment.publishedAt && new Date(assignment.publishedAt) > new Date() && (
+												<Badge variant="outline">{t("pages.assignmentDetail.scheduled")}</Badge>
+											)}
 											{assignment.dueDate && (
 												<span className="text-xs text-muted-foreground">
 													{t("pages.classDetail.dueDate", {

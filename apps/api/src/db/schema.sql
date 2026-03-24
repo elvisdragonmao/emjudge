@@ -10,6 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 DO $$ BEGIN CREATE TYPE user_role AS ENUM ('admin', 'teacher', 'student'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE class_member_role AS ENUM ('teacher', 'student'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE assignment_type AS ENUM ('html-css-js', 'react'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE assignment_status AS ENUM ('draft', 'published'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE submission_status AS ENUM ('pending', 'queued', 'running', 'completed', 'failed', 'error'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE judge_job_status AS ENUM ('pending', 'locked', 'running', 'completed', 'failed', 'dead'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE artifact_type AS ENUM ('screenshot', 'log', 'report'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -87,6 +88,8 @@ CREATE TABLE IF NOT EXISTS assignments (
   title                     VARCHAR(200) NOT NULL,
   description               TEXT NOT NULL DEFAULT '',
   type                      assignment_type NOT NULL DEFAULT 'html-css-js',
+  status                    assignment_status NOT NULL DEFAULT 'published',
+  published_at              TIMESTAMPTZ,
   due_date                  TIMESTAMPTZ,
   allow_multiple_submissions BOOLEAN NOT NULL DEFAULT true,
   sort_order                INTEGER NOT NULL DEFAULT 0,
@@ -96,6 +99,8 @@ CREATE TABLE IF NOT EXISTS assignments (
 );
 
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS status assignment_status NOT NULL DEFAULT 'published';
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ;
 
 WITH ordered_assignments AS (
   SELECT

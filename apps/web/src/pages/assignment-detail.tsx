@@ -100,6 +100,7 @@ export function AssignmentDetailPage() {
 	}
 
 	const isExpired = assignment.dueDate ? new Date(assignment.dueDate) < new Date() : false;
+	const isPublishedNow = assignment.status === "published" && (!assignment.publishedAt || new Date(assignment.publishedAt) <= new Date());
 	const currentUserClassRole = classDetail?.members.find(member => member.id === user?.id)?.role;
 	const canManageAssignment = !!user && (user.role === "admin" || currentUserClassRole === "teacher");
 	const canSubmitAssignment = !!user && currentUserClassRole === "student";
@@ -112,6 +113,8 @@ export function AssignmentDetailPage() {
 				<div className="flex items-center gap-3">
 					<h1 className="text-2xl font-bold">{assignment.title}</h1>
 					<Badge variant="secondary">{t(`assignmentTypes.${assignment.type}`)}</Badge>
+					{assignment.status === "draft" && <Badge variant="outline">{t("pages.assignmentForm.statusDraft")}</Badge>}
+					{assignment.status === "published" && !isPublishedNow && <Badge variant="outline">{t("pages.assignmentDetail.scheduled")}</Badge>}
 					{isExpired && <Badge variant="destructive">{t("pages.assignmentDetail.expired")}</Badge>}
 					{canManageAssignment && (
 						<Button asChild size="sm" variant="outline">
@@ -146,7 +149,7 @@ export function AssignmentDetailPage() {
 				</Card>
 			)}
 
-			{canSubmitAssignment && !isExpired && (
+			{canSubmitAssignment && isPublishedNow && !isExpired && (
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-base">{t("pages.assignmentDetail.submitAssignment")}</CardTitle>

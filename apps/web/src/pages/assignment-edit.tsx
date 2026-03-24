@@ -13,6 +13,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 
+function toDateTimeLocalValue(date: Date) {
+	const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+	return localDate.toISOString().slice(0, 16);
+}
+
 export function AssignmentEditPage() {
 	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
@@ -25,6 +30,8 @@ export function AssignmentEditPage() {
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [type, setType] = useState<"html-css-js" | "react">("html-css-js");
+	const [status, setStatus] = useState<"draft" | "published">("published");
+	const [publishAt, setPublishAt] = useState("");
 	const [hasDueDateLimit, setHasDueDateLimit] = useState(false);
 	const [dueDate, setDueDate] = useState("");
 	const [allowMultiple, setAllowMultiple] = useState(true);
@@ -39,8 +46,10 @@ export function AssignmentEditPage() {
 		setTitle(assignment.title);
 		setDescription(assignment.description);
 		setType(assignment.type);
+		setStatus(assignment.status);
+		setPublishAt(assignment.publishedAt ? toDateTimeLocalValue(new Date(assignment.publishedAt)) : "");
 		setHasDueDateLimit(Boolean(assignment.dueDate));
-		setDueDate(assignment.dueDate ? new Date(assignment.dueDate).toISOString().slice(0, 16) : "");
+		setDueDate(assignment.dueDate ? toDateTimeLocalValue(new Date(assignment.dueDate)) : "");
 		setAllowMultiple(assignment.allowMultipleSubmissions);
 		setTestContent(assignment.spec?.testContent ?? "");
 	}, [assignment]);
@@ -68,6 +77,8 @@ export function AssignmentEditPage() {
 				title,
 				description,
 				type,
+				status,
+				publishedAt: status === "published" ? (publishAt ? new Date(publishAt).toISOString() : null) : null,
 				dueDate: hasDueDateLimit && dueDate ? new Date(dueDate).toISOString() : null,
 				allowMultipleSubmissions: allowMultiple,
 				submissionRecordAction,
@@ -106,6 +117,7 @@ export function AssignmentEditPage() {
 
 	const currentUserClassRole = cls?.members.find(member => member.id === user?.id)?.role;
 	const canManageClass = !!user && (user.role === "admin" || currentUserClassRole === "teacher");
+	const isPublishScheduled = status === "published" && publishAt !== "";
 
 	if (cls && !canManageClass) {
 		return (
@@ -147,6 +159,36 @@ export function AssignmentEditPage() {
 						</div>
 
 						<div className="space-y-3">
+							<label className="text-sm font-medium">{t("pages.assignmentForm.publishStatus")}</label>
+							<div className="flex flex-wrap gap-2">
+								<Button type="button" variant={status === "published" ? "default" : "outline"} size="sm" onClick={() => setStatus("published")}>
+									{t("pages.assignmentForm.statusPublished")}
+								</Button>
+								<Button type="button" variant={status === "draft" ? "default" : "outline"} size="sm" onClick={() => setStatus("draft")}>
+									{t("pages.assignmentForm.statusDraft")}
+								</Button>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={() => {
+										setStatus("published");
+										setPublishAt(toDateTimeLocalValue(new Date()));
+									}}
+								>
+									{t("pages.assignmentEdit.publishNow")}
+								</Button>
+							</div>
+							{status === "published" && (
+								<div className="space-y-2">
+									<label className="text-sm font-medium">{t("pages.assignmentForm.publishAtOptional")}</label>
+									<Input type="datetime-local" value={publishAt} onChange={e => setPublishAt(e.target.value)} />
+									<p className="text-xs text-muted-foreground">{isPublishScheduled ? t("pages.assignmentEdit.scheduledPublishEnabled") : t("pages.assignmentForm.publishAtHelp")}</p>
+								</div>
+							)}
+						</div>
+
+						<div className="space-y-3">
 							<label className="text-sm font-medium">{t("pages.assignmentForm.dueDateOptional")}</label>
 							<label className="flex items-center gap-2 text-sm">
 								<input
@@ -162,7 +204,22 @@ export function AssignmentEditPage() {
 								/>
 								{t("pages.assignmentForm.limitByDueDate")}
 							</label>
-							{hasDueDateLimit && <Input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} />}
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => {
+									setHasDueDateLimit(true);
+									setDueDate(toDateTimeLocalValue(new Date()));
+								}}
+							>
+								{t("pages.assignmentEdit.closeNow")}
+							</Button>
+							{hasDueDateLimit && (
+								<div className="space-y-2">
+									<Input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+								</div>
+							)}
 						</div>
 
 						<div className="flex items-center gap-2">
