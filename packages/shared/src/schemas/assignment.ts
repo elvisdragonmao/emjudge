@@ -25,11 +25,16 @@ export const DEFAULT_REACT_ASSIGNMENT_SPEC = {
 export const SubmissionRecordAction = z.enum(["keep", "delete"]);
 export type SubmissionRecordAction = z.infer<typeof SubmissionRecordAction>;
 
+export const AssignmentStatus = z.enum(["draft", "published"]);
+export type AssignmentStatus = z.infer<typeof AssignmentStatus>;
+
 export const CreateAssignmentRequest = z.object({
 	classId: z.string().uuid(),
 	title: z.string().min(1).max(200),
 	description: z.string().default(""),
 	type: z.enum(["html-css-js", "react"]),
+	status: AssignmentStatus.default("published"),
+	publishedAt: z.string().datetime().nullable().optional(),
 	dueDate: z.string().datetime().optional(),
 	allowMultipleSubmissions: z.boolean().default(true),
 	spec: AssignmentSpec
@@ -41,6 +46,8 @@ export const UpdateAssignmentRequest = CreateAssignmentRequest.partial()
 		classId: true
 	})
 	.extend({
+		status: AssignmentStatus.optional(),
+		publishedAt: z.string().datetime().nullable().optional(),
 		dueDate: z.string().datetime().nullable().optional(),
 		submissionRecordAction: SubmissionRecordAction.optional()
 	});
@@ -56,6 +63,8 @@ export const AssignmentSummary = z.object({
 	classId: z.string().uuid(),
 	title: z.string(),
 	type: z.enum(["html-css-js", "react"]),
+	status: AssignmentStatus,
+	publishedAt: z.string().datetime().nullable(),
 	dueDate: z.string().datetime().nullable(),
 	allowMultipleSubmissions: z.boolean(),
 	sortOrder: z.number().int(),

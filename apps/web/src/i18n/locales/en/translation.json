@@ -399,6 +399,11 @@
 			"titleLabel": "Title",
 			"titlePlaceholder": "Assignment title",
 			"typeLabel": "Type",
+			"publishStatus": "Publish status",
+			"statusPublished": "Published",
+			"statusDraft": "Draft",
+			"publishAtOptional": "Publish time (optional)",
+			"publishAtHelp": "Leave empty to publish now, or set a future time to schedule publishing.",
 			"dueDateOptional": "Due date (optional)",
 			"limitByDueDate": "Enforce a due date",
 			"allowMultiple": "Allow multiple submissions",
@@ -415,6 +420,7 @@
 			"title": "Create assignment",
 			"creating": "Creating...",
 			"submit": "Create assignment",
+			"submitDraft": "Create draft assignment",
 			"createFailed": "Failed to create assignment. Please try again later."
 		},
 		"assignmentEdit": {
@@ -426,6 +432,9 @@
 			"keepRecords": "Keep current scores and records",
 			"deleteRecords": "Delete all current submissions and score records",
 			"deleteHelp": "Choosing delete clears the current submissions, runs, and artifacts for this assignment.",
+			"publishNow": "Publish now",
+			"closeNow": "Close now",
+			"scheduledPublishEnabled": "This assignment will be visible to students at the scheduled time.",
 			"updating": "Updating...",
 			"submit": "Save changes",
 			"updateFailed": "Failed to update assignment. Please try again later."
@@ -435,6 +444,7 @@
 			"notFoundTitle": "Assignment not found",
 			"uploadFailedTooManyFiles": "Submission failed: too many files. Make sure build output such as node_modules and dist is excluded, then try again.",
 			"uploadFailedDefault": "Submission failed. Please try again.",
+			"scheduled": "Scheduled",
 			"expired": "Closed",
 			"editAssignment": "Edit assignment",
 			"dueAt": "Due: {{date}}",

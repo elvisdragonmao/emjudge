@@ -24,6 +24,8 @@ export function AssignmentCreatePage() {
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [type, setType] = useState<"html-css-js" | "react">("html-css-js");
+	const [status, setStatus] = useState<"draft" | "published">("published");
+	const [publishAt, setPublishAt] = useState("");
 	const [hasDueDateLimit, setHasDueDateLimit] = useState(false);
 	const [dueDate, setDueDate] = useState("");
 	const [allowMultiple, setAllowMultiple] = useState(true);
@@ -59,6 +61,8 @@ export function AssignmentCreatePage() {
 				title,
 				description,
 				type,
+				status,
+				publishedAt: status === "published" ? (publishAt ? new Date(publishAt).toISOString() : null) : null,
 				dueDate: hasDueDateLimit && dueDate ? new Date(dueDate).toISOString() : undefined,
 				allowMultipleSubmissions: allowMultiple,
 				spec: {
@@ -116,6 +120,25 @@ export function AssignmentCreatePage() {
 									{t("assignmentTypes.react")}
 								</Button>
 							</div>
+						</div>
+
+						<div className="space-y-3">
+							<label className="text-sm font-medium">{t("pages.assignmentForm.publishStatus")}</label>
+							<div className="flex gap-2">
+								<Button type="button" variant={status === "published" ? "default" : "outline"} size="sm" onClick={() => setStatus("published")}>
+									{t("pages.assignmentForm.statusPublished")}
+								</Button>
+								<Button type="button" variant={status === "draft" ? "default" : "outline"} size="sm" onClick={() => setStatus("draft")}>
+									{t("pages.assignmentForm.statusDraft")}
+								</Button>
+							</div>
+							{status === "published" && (
+								<div className="space-y-2">
+									<label className="text-sm font-medium">{t("pages.assignmentForm.publishAtOptional")}</label>
+									<Input type="datetime-local" value={publishAt} onChange={e => setPublishAt(e.target.value)} />
+									<p className="text-xs text-muted-foreground">{t("pages.assignmentForm.publishAtHelp")}</p>
+								</div>
+							)}
 						</div>
 
 						<div className="space-y-3">
@@ -206,7 +229,7 @@ export function AssignmentCreatePage() {
 					</Button>
 					<Button type="submit" disabled={createMutation.isPending}>
 						<Save />
-						{createMutation.isPending ? t("pages.assignmentCreate.creating") : t("pages.assignmentCreate.submit")}
+						{createMutation.isPending ? t("pages.assignmentCreate.creating") : status === "draft" ? t("pages.assignmentCreate.submitDraft") : t("pages.assignmentCreate.submit")}
 					</Button>
 				</div>
 			</form>

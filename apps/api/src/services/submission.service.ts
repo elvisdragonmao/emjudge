@@ -246,8 +246,31 @@ export async function canUserViewAssignmentSubmissions(userId: string, userRole:
 		return true;
 	}
 
-	const classRole = await getClassMemberRoleByAssignment(userId, assignmentId);
-	return classRole !== null;
+	const row = await queryOne<{ role: "teacher" | "student"; status: "draft" | "published"; published_at: Date | null }>(
+		`SELECT cm.role, a.status, a.published_at
+       FROM assignments a
+       JOIN class_members cm ON cm.class_id = a.class_id
+       WHERE a.id = $1 AND cm.user_id = $2`,
+		[assignmentId, userId]
+	);
+
+	if (!row) {
+		return false;
+	}
+
+	if (row.role === "teacher") {
+		return true;
+	}
+
+	if (row.status !== "published") {
+		return false;
+	}
+
+	if (row.published_at && row.published_at.getTime() > Date.now()) {
+		return false;
+	}
+
+	return true;
 }
 
 export async function canUserViewSubmission(userId: string, userRole: string, submissionId: string) {

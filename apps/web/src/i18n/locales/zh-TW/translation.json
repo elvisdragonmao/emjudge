@@ -399,6 +399,11 @@
 			"titleLabel": "標題",
 			"titlePlaceholder": "作業標題",
 			"typeLabel": "題型",
+			"publishStatus": "發布狀態",
+			"statusPublished": "已發布",
+			"statusDraft": "草稿",
+			"publishAtOptional": "發佈時間（選填）",
+			"publishAtHelp": "留空代表立即發布；設定未來時間可排程發布。",
 			"dueDateOptional": "截止時間（選填）",
 			"limitByDueDate": "限制截止時間",
 			"allowMultiple": "允許多次提交",
@@ -415,6 +420,7 @@
 			"title": "建立作業",
 			"creating": "建立中...",
 			"submit": "建立作業",
+			"submitDraft": "建立作業草稿",
 			"createFailed": "建立作業失敗，請稍後再試"
 		},
 		"assignmentEdit": {
@@ -426,6 +432,9 @@
 			"keepRecords": "保留目前成績與紀錄",
 			"deleteRecords": "刪除目前所有繳交與成績紀錄",
 			"deleteHelp": "選擇刪除時，會清空此作業目前的 submissions/runs/artifacts。",
+			"publishNow": "立即發布",
+			"closeNow": "立即作業截止",
+			"scheduledPublishEnabled": "此作業會在設定時間自動對學生可見。",
 			"updating": "更新中...",
 			"submit": "儲存變更",
 			"updateFailed": "更新作業失敗，請稍後再試"
@@ -435,6 +444,7 @@
 			"notFoundTitle": "作業不存在",
 			"uploadFailedTooManyFiles": "提交失敗：檔案數量超過上限，請確認已排除 node_modules、dist 等產物後再試。",
 			"uploadFailedDefault": "提交失敗，請重試。",
+			"scheduled": "排程發布",
 			"expired": "已截止",
 			"editAssignment": "編輯題目",
 			"dueAt": "截止: {{date}}",
