@@ -5,14 +5,13 @@ import { SubmissionGrid, SubmissionList } from "@/components/submission-grid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAssignmentDetail, useSubmissions, useSubmit } from "@/hooks/use-api";
+import { useAssignmentDetail, useClassDetail, useSubmissions, useSubmit } from "@/hooks/use-api";
 import { useRefetchCountdown } from "@/hooks/use-refetch-countdown";
 import { formatDateTime } from "@/i18n";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { LayoutGrid, List, PencilLine } from "@/lib/icons";
 import { isSubmissionActive } from "@/lib/submission-status";
 import { useAuth } from "@/stores/auth";
-import { isStaff } from "@judge/shared";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
@@ -22,6 +21,7 @@ export function AssignmentDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const { user } = useAuth();
 	const { data: assignment, isLoading } = useAssignmentDetail(id!);
+	const { data: classDetail } = useClassDetail(assignment?.classId ?? "");
 	const { data: submissionData, dataUpdatedAt: submissionsUpdatedAt } = useSubmissions(id!);
 	const submitMutation = useSubmit(id!);
 
@@ -100,6 +100,9 @@ export function AssignmentDetailPage() {
 	}
 
 	const isExpired = assignment.dueDate ? new Date(assignment.dueDate) < new Date() : false;
+	const currentUserClassRole = classDetail?.members.find(member => member.id === user?.id)?.role;
+	const canManageAssignment = !!user && (user.role === "admin" || currentUserClassRole === "teacher");
+	const canSubmitAssignment = !!user && currentUserClassRole === "student";
 
 	return (
 		<div className="space-y-6">
@@ -110,7 +113,7 @@ export function AssignmentDetailPage() {
 					<h1 className="text-2xl font-bold">{assignment.title}</h1>
 					<Badge variant="secondary">{t(`assignmentTypes.${assignment.type}`)}</Badge>
 					{isExpired && <Badge variant="destructive">{t("pages.assignmentDetail.expired")}</Badge>}
-					{user && isStaff(user.role) && (
+					{canManageAssignment && (
 						<Button asChild size="sm" variant="outline">
 							<Link to={`/assignments/${assignment.id}/edit`}>
 								<PencilLine />
@@ -143,7 +146,7 @@ export function AssignmentDetailPage() {
 				</Card>
 			)}
 
-			{user?.role === "student" && !isExpired && (
+			{canSubmitAssignment && !isExpired && (
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-base">{t("pages.assignmentDetail.submitAssignment")}</CardTitle>

@@ -47,6 +47,10 @@ export async function submissionRoutes(app: FastifyInstance) {
 		},
 		async (request, reply) => {
 			const { id: assignmentId } = IdParam.parse(request.params);
+			const canSubmit = await submissionService.canUserViewAssignmentSubmissions(request.userId, request.userRole, assignmentId);
+			if (!canSubmit) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 
 			// Parse multipart files
 			const parts = request.parts();
@@ -210,7 +214,8 @@ export async function submissionRoutes(app: FastifyInstance) {
 				return reply.status(404).send({ error: "提交不存在", statusCode: 404 });
 			}
 
-			if (request.userRole === "student" && detail.userId !== request.userId) {
+			const canRejudge = await submissionService.canUserRejudgeSubmission(request.userId, request.userRole, id, detail.userId);
+			if (!canRejudge) {
 				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
 

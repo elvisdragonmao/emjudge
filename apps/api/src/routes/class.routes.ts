@@ -6,11 +6,11 @@ import {
 	ClassSummary,
 	CreateClassRequest,
 	IdParam,
-	isStaff,
 	JoinClassByCodeRequest,
 	MessageResponse,
 	RemoveClassMemberRequest,
 	UpdateClassJoinCodeSettingsRequest,
+	UpdateClassMemberRoleRequest,
 	UpdateClassRequest,
 	UserSummary
 } from "@judge/shared";
@@ -38,7 +38,7 @@ export async function classRoutes(app: FastifyInstance) {
 			})
 		},
 		async request => {
-			if (isStaff(request.userRole)) {
+			if (request.userRole === "admin") {
 				return classService.listClasses();
 			}
 			return classService.listClassesForUser(request.userId);
@@ -48,7 +48,7 @@ export async function classRoutes(app: FastifyInstance) {
 	app.get(
 		"/api/classes/:id/available-members",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Classes"],
 				summary: "List users available to add to class",
@@ -62,8 +62,12 @@ export async function classRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			return classService.listAvailableMembers(id);
 		}
 	);
@@ -89,15 +93,12 @@ export async function classRoutes(app: FastifyInstance) {
 		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
 
-			// Students can only view their own classes
-			if (request.userRole === "student") {
-				const inClass = await classService.isUserInClass(request.userId, id);
-				if (!inClass) {
-					return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
-				}
+			const canView = await classService.canViewClass(request.userId, request.userRole, id);
+			if (!canView) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
 
-			const cls = await classService.getClassDetail(id, isStaff(request.userRole));
+			const cls = await classService.getClassDetail(id, request.userRole === "admin");
 			if (!cls) {
 				return reply.status(404).send({ error: "班級不存在", statusCode: 404 });
 			}
@@ -163,11 +164,9 @@ export async function classRoutes(app: FastifyInstance) {
 		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
 
-			if (request.userRole === "student") {
-				const inClass = await classService.isUserInClass(request.userId, id);
-				if (!inClass) {
-					return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
-				}
+			const canView = await classService.canViewClass(request.userId, request.userRole, id);
+			if (!canView) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
 
 			return classService.getClassScoreHistory(id);
@@ -203,7 +202,7 @@ export async function classRoutes(app: FastifyInstance) {
 	app.patch(
 		"/api/classes/:id",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Classes"],
 				summary: "Update class",
@@ -218,8 +217,12 @@ export async function classRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			const body = UpdateClassRequest.parse(request.body);
 			await classService.updateClass(id, body);
 			return { message: "班級已更新" };
@@ -229,7 +232,7 @@ export async function classRoutes(app: FastifyInstance) {
 	app.patch(
 		"/api/classes/:id/join-code",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Classes"],
 				summary: "Update class join code settings",
@@ -246,6 +249,10 @@ export async function classRoutes(app: FastifyInstance) {
 		},
 		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			const body = UpdateClassJoinCodeSettingsRequest.parse(request.body);
 			await classService.updateClass(id, { joinCodeEnabled: body.joinCodeEnabled });
 			const settings = await classService.getJoinCodeSettings(id);
@@ -259,7 +266,7 @@ export async function classRoutes(app: FastifyInstance) {
 	app.post(
 		"/api/classes/:id/join-code/reissue",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Classes"],
 				summary: "Reissue class join code",
@@ -275,6 +282,10 @@ export async function classRoutes(app: FastifyInstance) {
 		},
 		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			const settings = await classService.reissueJoinCode(id);
 			if (!settings) {
 				return reply.status(404).send({ error: "班級不存在", statusCode: 404 });
@@ -287,7 +298,7 @@ export async function classRoutes(app: FastifyInstance) {
 	app.post(
 		"/api/classes/:id/members",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Classes"],
 				summary: "Add class members",
@@ -302,8 +313,12 @@ export async function classRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			const body = AddClassMembersRequest.parse(request.body);
 			await classService.addMembers(id, body.userIds);
 			return { message: "成員已加入" };
@@ -314,7 +329,7 @@ export async function classRoutes(app: FastifyInstance) {
 	app.delete(
 		"/api/classes/:id/members",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Classes"],
 				summary: "Remove class member",
@@ -329,11 +344,46 @@ export async function classRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			const body = RemoveClassMemberRequest.parse(request.body);
 			await classService.removeMember(id, body.userId);
 			return { message: "成員已移除" };
+		}
+	);
+
+	app.patch(
+		"/api/classes/:id/members/role",
+		{
+			preHandler: authenticate,
+			schema: createRouteSchema({
+				tags: ["Classes"],
+				summary: "Update class member role",
+				security: authSecurity,
+				params: toJsonSchema(IdParam, "UpdateClassMemberRoleIdParam"),
+				body: toJsonSchema(UpdateClassMemberRoleRequest, "UpdateClassMemberRoleRequest"),
+				response: withErrorResponses(
+					{
+						200: toJsonSchema(MessageResponse, "ClassMemberRoleUpdatedResponse")
+					},
+					[400, 401, 403]
+				)
+			})
+		},
+		async (request, reply) => {
+			const { id } = IdParam.parse(request.params);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
+
+			const body = UpdateClassMemberRoleRequest.parse(request.body);
+			await classService.updateMemberRole(id, body.userId, body.role);
+			return { message: "成員角色已更新" };
 		}
 	);
 }

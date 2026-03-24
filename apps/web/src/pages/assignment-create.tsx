@@ -4,9 +4,10 @@ import { TestTemplatePicker } from "@/components/test-template-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useCreateAssignment } from "@/hooks/use-api";
+import { useClassDetail, useCreateAssignment } from "@/hooks/use-api";
 import { getApiErrorMessage } from "@/lib/api";
 import { Code2, Eye, FileCode2, Save, Sparkles, X } from "@/lib/icons";
+import { useAuth } from "@/stores/auth";
 import { DEFAULT_REACT_ASSIGNMENT_SPEC } from "@judge/shared";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,6 +17,8 @@ export function AssignmentCreatePage() {
 	const { t } = useTranslation();
 	const { classId } = useParams<{ classId: string }>();
 	const navigate = useNavigate();
+	const { user } = useAuth();
+	const { data: cls } = useClassDetail(classId ?? "");
 	const createMutation = useCreateAssignment();
 
 	const [title, setTitle] = useState("");
@@ -72,6 +75,18 @@ export function AssignmentCreatePage() {
 			}
 		);
 	};
+
+	const currentUserClassRole = cls?.members.find(member => member.id === user?.id)?.role;
+	const canManageClass = !!user && (user.role === "admin" || currentUserClassRole === "teacher");
+
+	if (cls && !canManageClass) {
+		return (
+			<>
+				<PageTitle title={t("pages.assignmentCreate.title")} />
+				<p className="text-muted-foreground">Forbidden</p>
+			</>
+		);
+	}
 
 	return (
 		<div className="space-y-6">

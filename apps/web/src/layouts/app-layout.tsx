@@ -2,7 +2,6 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 import { Laptop, LogOut, Moon, Sun } from "@/lib/icons";
 import { useAuth } from "@/stores/auth";
-import { isStaff } from "@judge/shared";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useNavigate } from "react-router";
@@ -52,7 +51,7 @@ export function AppLayout() {
 								<Link to="/classes" className="text-muted-foreground transition-colors hover:text-foreground">
 									{t("layout.nav.classes")}
 								</Link>
-								{isStaff(user.role) && (
+								{user.role === "admin" && (
 									<Link to="/admin" className="text-muted-foreground transition-colors hover:text-foreground">
 										{t("layout.nav.admin")}
 									</Link>
