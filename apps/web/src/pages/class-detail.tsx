@@ -22,7 +22,7 @@ import { Copy, GripVertical, Plus, RotateCcw, UserMinus, UserPlus, Users, X } fr
 import { useAuth } from "@/stores/auth";
 import type { AssignmentSummary } from "@judge/shared";
 import { isStaff } from "@judge/shared";
-import { useEffect, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 
@@ -49,6 +49,8 @@ export function ClassDetailPage() {
 	const [assignmentMessage, setAssignmentMessage] = useState("");
 	const [orderedAssignments, setOrderedAssignments] = useState<AssignmentSummary[]>([]);
 	const [draggingAssignmentId, setDraggingAssignmentId] = useState<string | null>(null);
+	const dragStartOrderRef = useRef<AssignmentSummary[] | null>(null);
+	const dropHandledRef = useRef(false);
 
 	useEffect(() => {
 		setOrderedAssignments(assignments ?? []);
@@ -78,7 +80,8 @@ export function ClassDetailPage() {
 			!memberIds.has(candidate.id) &&
 			(searchQuery === "" || candidate.username.toLowerCase().includes(searchQuery.toLowerCase()) || candidate.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
-	const canManageAssignments = !!user && isStaff(user.role) && !reorderAssignmentsMutation.isPending;
+	const canManageAssignments = !!user && isStaff(user.role);
+	const canDragAssignments = canManageAssignments && !reorderAssignmentsMutation.isPending;
 
 	const handleAddMember = (userId: string) => {
 		setMemberMessage("");
@@ -119,17 +122,36 @@ export function ClassDetailPage() {
 		return nextItems;
 	};
 
-	const handleAssignmentDrop = (targetAssignmentId: string) => {
+	const isSameAssignmentOrder = (first: AssignmentSummary[], second: AssignmentSummary[]) => {
+		if (first.length !== second.length) {
+			return false;
+		}
+
+		return first.every((item, index) => item.id === second[index]?.id);
+	};
+
+	const handleAssignmentDragOver = (targetAssignmentId: string) => {
 		if (!draggingAssignmentId || draggingAssignmentId === targetAssignmentId) {
-			setDraggingAssignmentId(null);
 			return;
 		}
 
-		const previousAssignments = orderedAssignments;
-		const nextAssignments = moveAssignment(previousAssignments, draggingAssignmentId, targetAssignmentId);
-		setDraggingAssignmentId(null);
+		setOrderedAssignments(previousAssignments => moveAssignment(previousAssignments, draggingAssignmentId, targetAssignmentId));
+	};
 
-		if (nextAssignments === previousAssignments) {
+	const handleAssignmentDrop = () => {
+		dropHandledRef.current = true;
+		if (!draggingAssignmentId) {
+			setDraggingAssignmentId(null);
+			dragStartOrderRef.current = null;
+			return;
+		}
+
+		const previousAssignments = dragStartOrderRef.current ?? orderedAssignments;
+		const nextAssignments = orderedAssignments;
+		setDraggingAssignmentId(null);
+		dragStartOrderRef.current = null;
+
+		if (isSameAssignmentOrder(nextAssignments, previousAssignments)) {
 			return;
 		}
 
@@ -252,15 +274,17 @@ export function ClassDetailPage() {
 				{orderedAssignments.map(assignment => (
 					<Card
 						key={assignment.id}
+						data-assignment-card={assignment.id}
 						className={`transition-shadow hover:shadow-md ${draggingAssignmentId === assignment.id ? "opacity-70" : ""}`}
 						onDragOver={event => {
-							if (canManageAssignments) {
+							if (canDragAssignments) {
 								event.preventDefault();
+								handleAssignmentDragOver(assignment.id);
 							}
 						}}
 						onDrop={() => {
-							if (canManageAssignments) {
-								handleAssignmentDrop(assignment.id);
+							if (canDragAssignments) {
+								handleAssignmentDrop();
 							}
 						}}
 					>
@@ -269,38 +293,60 @@ export function ClassDetailPage() {
 								{canManageAssignments && (
 									<button
 										type="button"
-										draggable
+										draggable={canDragAssignments}
 										onDragStart={(event: DragEvent<HTMLButtonElement>) => {
+											if (!canDragAssignments) {
+												return;
+											}
 											event.dataTransfer.effectAllowed = "move";
+											dropHandledRef.current = false;
+											dragStartOrderRef.current = orderedAssignments;
 											setDraggingAssignmentId(assignment.id);
+
+											const cardElement = event.currentTarget.closest("[data-assignment-card]") as HTMLElement | null;
+											if (cardElement) {
+												event.dataTransfer.setDragImage(cardElement, cardElement.clientWidth / 2, 24);
+											}
 										}}
-										onDragEnd={() => setDraggingAssignmentId(null)}
-										className="cursor-grab rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground active:cursor-grabbing"
+										onDragEnd={() => {
+											if (!dropHandledRef.current && dragStartOrderRef.current) {
+												setOrderedAssignments(dragStartOrderRef.current);
+											}
+											setDraggingAssignmentId(null);
+											dragStartOrderRef.current = null;
+										}}
+										disabled={!canDragAssignments}
+										className={`rounded-md p-1 text-muted-foreground transition-colors ${
+											canDragAssignments ? "cursor-grab hover:bg-accent hover:text-foreground active:cursor-grabbing" : "cursor-not-allowed opacity-60"
+										}`}
 										aria-label={t("pages.classDetail.reorderAssignments")}
 									>
 										<GripVertical className="size-4" />
 									</button>
 								)}
-								<div className="min-w-0">
-									<Link to={`/assignments/${assignment.id}`} className="font-medium hover:underline">
-										{assignment.title}
-									</Link>
-									<div className="mt-1 flex flex-wrap items-center gap-2">
-										<Badge variant="secondary">{t(`assignmentTypes.${assignment.type}`)}</Badge>
-										{assignment.dueDate && (
-											<span className="text-xs text-muted-foreground">
-												{t("pages.classDetail.dueDate", {
-													date: formatDate(assignment.dueDate)
-												})}
-											</span>
-										)}
+								<Link
+									to={`/assignments/${assignment.id}`}
+									className="flex min-w-0 flex-1 items-center justify-between gap-4 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+								>
+									<div className="min-w-0">
+										<p className="truncate font-medium hover:underline">{assignment.title}</p>
+										<div className="mt-1 flex flex-wrap items-center gap-2">
+											<Badge variant="secondary">{t(`assignmentTypes.${assignment.type}`)}</Badge>
+											{assignment.dueDate && (
+												<span className="text-xs text-muted-foreground">
+													{t("pages.classDetail.dueDate", {
+														date: formatDate(assignment.dueDate)
+													})}
+												</span>
+											)}
+										</div>
 									</div>
-								</div>
-							</div>
-							<div className="text-sm text-muted-foreground">
-								{t("pages.classDetail.submissionsCount", {
-									count: assignment.submissionCount
-								})}
+									<div className="shrink-0 text-sm text-muted-foreground">
+										{t("pages.classDetail.submissionsCount", {
+											count: assignment.submissionCount
+										})}
+									</div>
+								</Link>
 							</div>
 						</CardContent>
 					</Card>
