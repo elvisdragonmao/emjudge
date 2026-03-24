@@ -305,7 +305,10 @@ export function ClassDetailPage() {
 
 											const cardElement = event.currentTarget.closest("[data-assignment-card]") as HTMLElement | null;
 											if (cardElement) {
-												event.dataTransfer.setDragImage(cardElement, cardElement.clientWidth / 2, 24);
+												const cardRect = cardElement.getBoundingClientRect();
+												const dragImageOffsetX = Math.max(0, Math.min(event.clientX - cardRect.left, cardRect.width - 1));
+												const dragImageOffsetY = Math.max(0, Math.min(event.clientY - cardRect.top, cardRect.height - 1));
+												event.dataTransfer.setDragImage(cardElement, dragImageOffsetX, dragImageOffsetY);
 											}
 										}}
 										onDragEnd={() => {
