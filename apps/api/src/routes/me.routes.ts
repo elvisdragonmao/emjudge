@@ -6,7 +6,7 @@ import * as userService from "../services/user.service.js";
 
 const CurrentUserResponse = UserSummary.omit({ classes: true });
 
-export async function meRoutes(app: FastifyInstance) {
+export const meRoutes = async (app: FastifyInstance) => {
 	// Get current user profile
 	app.get(
 		"/api/me",
@@ -89,4 +89,4 @@ export async function meRoutes(app: FastifyInstance) {
 			return { message: "密碼更新成功" };
 		}
 	);
-}
+};

@@ -12,7 +12,7 @@ interface TestTemplatePickerProps {
 	onApply: (code: string) => void;
 }
 
-export function TestTemplatePicker({ assignmentType, onApply }: TestTemplatePickerProps) {
+export const TestTemplatePicker = ({ assignmentType, onApply }: TestTemplatePickerProps) => {
 	const { t } = useTranslation();
 	const [activeCategory, setActiveCategory] = useState<string | null>(null);
 	const [selectedTemplate, setSelectedTemplate] = useState<TestTemplate | null>(null);
@@ -180,4 +180,4 @@ export function TestTemplatePicker({ assignmentType, onApply }: TestTemplatePick
 			)}
 		</div>
 	);
-}
+};

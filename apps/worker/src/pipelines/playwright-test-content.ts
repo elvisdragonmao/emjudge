@@ -22,11 +22,11 @@ const PLAYWRIGHT_IMPORT_PRIORITY = new Map([
 	["expect", 1]
 ]);
 
-function sortPlaywrightImports(a: string, b: string) {
+const sortPlaywrightImports = (a: string, b: string) => {
 	return (PLAYWRIGHT_IMPORT_PRIORITY.get(a) ?? Number.MAX_SAFE_INTEGER) - (PLAYWRIGHT_IMPORT_PRIORITY.get(b) ?? Number.MAX_SAFE_INTEGER) || a.localeCompare(b);
-}
+};
 
-export function normalizePlaywrightTestContent(content: string) {
+export const normalizePlaywrightTestContent = (content: string) => {
 	const imports = new Set<string>();
 	const body = content.replace(PLAYWRIGHT_TEST_IMPORT_RE, (_, names: string) => {
 		for (const name of names.split(",")) {
@@ -48,4 +48,4 @@ export function normalizePlaywrightTestContent(content: string) {
 	const mergedBody = needsAutoScreenshot ? `${AUTO_SCREENSHOT_HOOK}\n\n${trimmedBody}`.trim() : trimmedBody;
 
 	return mergedBody ? `${importLine}\n\n${mergedBody}\n` : `${importLine}\n`;
-}
+};

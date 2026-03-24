@@ -27,44 +27,44 @@ let state: AuthState = {
 
 const listeners = new Set<() => void>();
 
-function emitChange() {
+const emitChange = () => {
 	for (const listener of listeners) {
 		listener();
 	}
-}
+};
 
-function subscribe(listener: () => void) {
+const subscribe = (listener: () => void) => {
 	listeners.add(listener);
 	return () => listeners.delete(listener);
-}
+};
 
-function getSnapshot() {
+const getSnapshot = () => {
 	return state;
-}
+};
 
-export function setAuth(token: string, user: AuthUser) {
+export const setAuth = (token: string, user: AuthUser) => {
 	localStorage.setItem("token", token);
 	localStorage.setItem("user", JSON.stringify(user));
 	state = { token, user };
 	emitChange();
-}
+};
 
-export function clearAuth() {
+export const clearAuth = () => {
 	localStorage.removeItem("token");
 	localStorage.removeItem("user");
 	state = { token: null, user: null };
 	emitChange();
-}
+};
 
-export function updateUser(partial: Partial<AuthUser>) {
+export const updateUser = (partial: Partial<AuthUser>) => {
 	if (!state.user) return;
 	const updated = { ...state.user, ...partial };
 	localStorage.setItem("user", JSON.stringify(updated));
 	state = { ...state, user: updated };
 	emitChange();
-}
+};
 
-export function useAuth() {
+export const useAuth = () => {
 	const authState = useSyncExternalStore(subscribe, getSnapshot);
 
 	const login = useCallback((token: string, user: AuthUser) => {
@@ -82,4 +82,4 @@ export function useAuth() {
 		login,
 		logout
 	};
-}
+};

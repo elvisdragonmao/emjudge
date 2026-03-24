@@ -26,7 +26,7 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 
-export function ClassDetailPage() {
+export const ClassDetailPage = () => {
 	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
 	const { user } = useAuth();
@@ -454,4 +454,4 @@ export function ClassDetailPage() {
 			)}
 		</div>
 	);
-}
+};

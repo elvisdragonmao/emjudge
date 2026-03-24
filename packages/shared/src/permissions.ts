@@ -33,11 +33,11 @@ export const PERMISSIONS = {
 
 export type Permission = keyof typeof PERMISSIONS;
 
-export function hasPermission(role: Role, permission: Permission): boolean {
+export const hasPermission = (role: Role, permission: Permission): boolean => {
 	const allowed = PERMISSIONS[permission];
 	return (allowed as readonly string[]).includes(role);
-}
+};
 
-export function isStaff(role: Role): boolean {
+export const isStaff = (role: Role): boolean => {
 	return role === "admin" || role === "teacher";
-}
+};

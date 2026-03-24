@@ -6,7 +6,7 @@ interface AuthGuardProps {
 	allowedRoles?: Role[];
 }
 
-export function AuthGuard({ allowedRoles }: AuthGuardProps) {
+export const AuthGuard = ({ allowedRoles }: AuthGuardProps) => {
 	const { isAuthenticated, user } = useAuth();
 
 	if (!isAuthenticated || !user) {
@@ -18,4 +18,4 @@ export function AuthGuard({ allowedRoles }: AuthGuardProps) {
 	}
 
 	return <Outlet />;
-}
+};

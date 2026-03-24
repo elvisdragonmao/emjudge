@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 
-export function RegisterPage() {
+export const RegisterPage = () => {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { login } = useAuth();
@@ -110,4 +110,4 @@ export function RegisterPage() {
 			</Card>
 		</div>
 	);
-}
+};

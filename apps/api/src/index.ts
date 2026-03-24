@@ -14,7 +14,7 @@ import { meRoutes } from "./routes/me.routes.js";
 import { submissionRoutes } from "./routes/submission.routes.js";
 import { ensureBuckets } from "./utils/minio.js";
 
-async function main() {
+const main = async () => {
 	const app = Fastify({ logger: true });
 
 	// ─── Plugins ─────────────────────────────────────────
@@ -112,7 +112,7 @@ async function main() {
 
 	await app.listen({ port: config.PORT, host: config.HOST });
 	app.log.info(`API server running on ${config.HOST}:${config.PORT}`);
-}
+};
 
 main().catch(err => {
 	console.error("Failed to start server:", err);

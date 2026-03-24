@@ -9,7 +9,7 @@ interface FileUploaderProps {
 	isLoading?: boolean;
 }
 
-export function FileUploader({ onUpload, isLoading }: FileUploaderProps) {
+export const FileUploader = ({ onUpload, isLoading }: FileUploaderProps) => {
 	const { t } = useTranslation();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const folderInputRef = useRef<HTMLInputElement>(null);
@@ -135,4 +135,4 @@ export function FileUploader({ onUpload, isLoading }: FileUploaderProps) {
 			{ignoredCount > 0 && <p className="text-xs text-muted-foreground">{t("components.fileUploader.ignoredFiles", { count: ignoredCount })}</p>}
 		</div>
 	);
-}
+};

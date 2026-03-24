@@ -2,11 +2,11 @@ import { i18n } from "@/i18n";
 
 const ACTIVE_SUBMISSION_STATUSES = new Set(["pending", "queued", "running"]);
 
-export function isSubmissionActive(status: string) {
+export const isSubmissionActive = (status: string) => {
 	return ACTIVE_SUBMISSION_STATUSES.has(status);
-}
+};
 
-export function getSubmissionStatusVariant(status: string) {
+export const getSubmissionStatusVariant = (status: string) => {
 	switch (status) {
 		case "completed":
 			return "success" as const;
@@ -20,8 +20,8 @@ export function getSubmissionStatusVariant(status: string) {
 		default:
 			return "secondary" as const;
 	}
-}
+};
 
-export function getSubmissionStatusLabel(status: string) {
+export const getSubmissionStatusLabel = (status: string) => {
 	return i18n.t(`submissionStatus.${status}`, { defaultValue: status });
-}
+};

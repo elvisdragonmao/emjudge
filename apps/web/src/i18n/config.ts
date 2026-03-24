@@ -27,7 +27,7 @@ const LANGUAGE_ALIASES: Record<string, AppLanguage> = {
 	"zh-tw": "zh-TW"
 };
 
-export function normalizeLanguageTag(language?: string | null): AppLanguage {
+export const normalizeLanguageTag = (language?: string | null): AppLanguage => {
 	if (!language) {
 		return DEFAULT_LANGUAGE;
 	}
@@ -66,18 +66,18 @@ export function normalizeLanguageTag(language?: string | null): AppLanguage {
 	}
 
 	return DEFAULT_LANGUAGE;
-}
+};
 
-export function getStoredLanguage(): AppLanguage | null {
+export const getStoredLanguage = (): AppLanguage | null => {
 	if (typeof window === "undefined") {
 		return null;
 	}
 
 	const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
 	return stored ? normalizeLanguageTag(stored) : null;
-}
+};
 
-export function detectInitialLanguage(): AppLanguage {
+export const detectInitialLanguage = (): AppLanguage => {
 	const stored = getStoredLanguage();
 
 	if (stored) {
@@ -89,8 +89,8 @@ export function detectInitialLanguage(): AppLanguage {
 	}
 
 	return DEFAULT_LANGUAGE;
-}
+};
 
-export function getDateTimeLocale(language: string): string {
+export const getDateTimeLocale = (language: string): string => {
 	return normalizeLanguageTag(language);
-}
+};

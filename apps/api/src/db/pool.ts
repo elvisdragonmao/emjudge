@@ -7,24 +7,24 @@ export const pool = new pg.Pool({
 });
 
 /** Run a query and return rows */
-export async function query<T extends pg.QueryResultRow = Record<string, unknown>>(text: string, params?: unknown[]): Promise<pg.QueryResult<T>> {
+export const query = async <T extends pg.QueryResultRow = Record<string, unknown>>(text: string, params?: unknown[]): Promise<pg.QueryResult<T>> => {
 	return pool.query<T>(text, params);
-}
+};
 
 /** Run a query and return a single row or null */
-export async function queryOne<T extends pg.QueryResultRow = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T | null> {
+export const queryOne = async <T extends pg.QueryResultRow = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T | null> => {
 	const result = await pool.query<T>(text, params);
 	return result.rows[0] ?? null;
-}
+};
 
 /** Run a query and return all rows */
-export async function queryMany<T extends pg.QueryResultRow = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]> {
+export const queryMany = async <T extends pg.QueryResultRow = Record<string, unknown>>(text: string, params?: unknown[]): Promise<T[]> => {
 	const result = await pool.query<T>(text, params);
 	return result.rows;
-}
+};
 
 /** Run a transaction */
-export async function transaction<T>(fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+export const transaction = async <T>(fn: (client: pg.PoolClient) => Promise<T>): Promise<T> => {
 	const client = await pool.connect();
 	try {
 		await client.query("BEGIN");
@@ -37,4 +37,4 @@ export async function transaction<T>(fn: (client: pg.PoolClient) => Promise<T>):
 	} finally {
 		client.release();
 	}
-}
+};

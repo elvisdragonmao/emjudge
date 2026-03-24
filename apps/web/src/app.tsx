@@ -37,7 +37,7 @@ const SubmissionDetailPage = lazy(() =>
 const AdminPage = lazy(() => import("@/pages/admin").then(module => ({ default: module.AdminPage })));
 const NotFoundPage = lazy(() => import("@/pages/not-found").then(module => ({ default: module.NotFoundPage })));
 
-function PageFallback() {
+const PageFallback = () => {
 	const { t } = useTranslation();
 
 	return (
@@ -45,9 +45,9 @@ function PageFallback() {
 			<p className="text-muted-foreground">{t("common.loading")}</p>
 		</div>
 	);
-}
+};
 
-export function App() {
+export const App = () => {
 	return (
 		<Suspense fallback={<PageFallback />}>
 			<Routes>
@@ -82,4 +82,4 @@ export function App() {
 			</Routes>
 		</Suspense>
 	);
-}
+};

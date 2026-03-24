@@ -21,7 +21,7 @@ interface AssignmentRow {
 let sortOrderColumnEnsured = false;
 let publicationColumnsEnsured = false;
 
-async function ensureSortOrderColumn() {
+const ensureSortOrderColumn = async () => {
 	if (sortOrderColumnEnsured) {
 		return;
 	}
@@ -42,9 +42,9 @@ async function ensureSortOrderColumn() {
 	);
 
 	sortOrderColumnEnsured = true;
-}
+};
 
-async function ensurePublicationColumns() {
+const ensurePublicationColumns = async () => {
 	if (publicationColumnsEnsured) {
 		return;
 	}
@@ -53,7 +53,7 @@ async function ensurePublicationColumns() {
 	await query("ALTER TABLE assignments ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ");
 
 	publicationColumnsEnsured = true;
-}
+};
 
 interface SpecRow {
 	id: string;
@@ -65,7 +65,7 @@ interface SpecRow {
 	blocked_paths: string[];
 }
 
-function toSummary(row: AssignmentRow) {
+const toSummary = (row: AssignmentRow) => {
 	return {
 		id: row.id,
 		classId: row.class_id,
@@ -79,9 +79,9 @@ function toSummary(row: AssignmentRow) {
 		submissionCount: parseInt(row.submission_count ?? "0", 10),
 		createdAt: row.created_at.toISOString()
 	};
-}
+};
 
-export async function listByClass(classId: string, includeUnpublished = false) {
+export const listByClass = async (classId: string, includeUnpublished = false) => {
 	await ensureSortOrderColumn();
 	await ensurePublicationColumns();
 
@@ -95,9 +95,9 @@ export async function listByClass(classId: string, includeUnpublished = false) {
 		[classId, includeUnpublished]
 	);
 	return rows.map(toSummary);
-}
+};
 
-export async function getById(id: string) {
+export const getById = async (id: string) => {
 	await ensurePublicationColumns();
 
 	const row = await queryOne<AssignmentRow>(
@@ -127,9 +127,9 @@ export async function getById(id: string) {
 				}
 			: undefined
 	};
-}
+};
 
-export async function create(data: CreateAssignmentRequest, createdBy: string) {
+export const create = async (data: CreateAssignmentRequest, createdBy: string) => {
 	await ensureSortOrderColumn();
 	await ensurePublicationColumns();
 
@@ -157,9 +157,9 @@ export async function create(data: CreateAssignmentRequest, createdBy: string) {
 
 		return assignmentId;
 	});
-}
+};
 
-export async function update(id: string, data: UpdateAssignmentRequest) {
+export const update = async (id: string, data: UpdateAssignmentRequest) => {
 	await ensurePublicationColumns();
 
 	await transaction(async client => {
@@ -237,13 +237,13 @@ export async function update(id: string, data: UpdateAssignmentRequest) {
 			await client.query("DELETE FROM submissions WHERE assignment_id = $1", [id]);
 		}
 	});
-}
+};
 
-export async function deleteAssignment(id: string) {
+export const deleteAssignment = async (id: string) => {
 	await query("DELETE FROM assignments WHERE id = $1", [id]);
-}
+};
 
-export async function reorderByClass(classId: string, assignmentIds: string[]) {
+export const reorderByClass = async (classId: string, assignmentIds: string[]) => {
 	await ensureSortOrderColumn();
 
 	await transaction(async client => {
@@ -263,4 +263,4 @@ export async function reorderByClass(classId: string, assignmentIds: string[]) {
 			await client.query("UPDATE assignments SET sort_order = $1 WHERE id = $2 AND class_id = $3", [index + 1, assignmentId, classId]);
 		}
 	});
-}
+};

@@ -13,7 +13,7 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 
-export function AssignmentCreatePage() {
+export const AssignmentCreatePage = () => {
 	const { t } = useTranslation();
 	const { classId } = useParams<{ classId: string }>();
 	const navigate = useNavigate();
@@ -235,4 +235,4 @@ export function AssignmentCreatePage() {
 			</form>
 		</div>
 	);
-}
+};

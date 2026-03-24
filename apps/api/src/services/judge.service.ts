@@ -20,7 +20,7 @@ interface JudgeJobRow {
  * Acquire the next pending job using SELECT FOR UPDATE SKIP LOCKED.
  * This is the core of our PG-based queue.
  */
-export async function acquireJob(workerId: string): Promise<JudgeJobRow | null> {
+export const acquireJob = async (workerId: string): Promise<JudgeJobRow | null> => {
 	const row = await queryOne<JudgeJobRow>(
 		`UPDATE judge_jobs
      SET status = 'locked', locked_by = $1, locked_at = NOW(), attempts = attempts + 1
@@ -35,10 +35,10 @@ export async function acquireJob(workerId: string): Promise<JudgeJobRow | null> 
 		[workerId]
 	);
 	return row;
-}
+};
 
 /** Mark job as running */
-export async function markRunning(jobId: string) {
+export const markRunning = async (jobId: string) => {
 	await query(`UPDATE judge_jobs SET status = 'running', started_at = NOW() WHERE id = $1`, [jobId]);
 	// Also update the submission run
 	const job = await queryOne<JudgeJobRow>("SELECT * FROM judge_jobs WHERE id = $1", [jobId]);
@@ -46,10 +46,10 @@ export async function markRunning(jobId: string) {
 		await query("UPDATE submission_runs SET status = 'running', started_at = NOW() WHERE id = $1", [job.run_id]);
 		await query("UPDATE submissions SET status = 'running' WHERE id = $1", [job.submission_id]);
 	}
-}
+};
 
 /** Mark job as completed with results */
-export async function markCompleted(
+export const markCompleted = async (
 	jobId: string,
 	results: {
 		score: number;
@@ -57,7 +57,7 @@ export async function markCompleted(
 		testResults: unknown;
 		log: string;
 	}
-) {
+) => {
 	const job = await queryOne<JudgeJobRow>("SELECT * FROM judge_jobs WHERE id = $1", [jobId]);
 	if (!job) return;
 
@@ -77,10 +77,10 @@ export async function markCompleted(
      WHERE id = $3`,
 		[results.score, results.maxScore, job.submission_id]
 	);
-}
+};
 
 /** Mark job as failed */
-export async function markFailed(jobId: string, errorMessage: string) {
+export const markFailed = async (jobId: string, errorMessage: string) => {
 	const job = await queryOne<JudgeJobRow>("SELECT * FROM judge_jobs WHERE id = $1", [jobId]);
 	if (!job) return;
 
@@ -102,20 +102,20 @@ export async function markFailed(jobId: string, errorMessage: string) {
 	if (finalStatus === "failed") {
 		await query(`UPDATE judge_jobs SET status = 'pending', locked_by = NULL, locked_at = NULL WHERE id = $1`, [jobId]);
 	}
-}
+};
 
 /** Get pending job count */
-export async function getPendingCount(): Promise<number> {
+export const getPendingCount = async (): Promise<number> => {
 	const row = await queryOne<{ count: string }>("SELECT COUNT(*) as count FROM judge_jobs WHERE status IN ('pending', 'locked', 'running')");
 	return parseInt(row?.count ?? "0", 10);
-}
+};
 
 /** Clean up stale locked jobs (heartbeat timeout) */
-export async function cleanStaleLocks(timeoutMs: number = 300_000) {
+export const cleanStaleLocks = async (timeoutMs: number = 300_000) => {
 	await query(
 		`UPDATE judge_jobs
      SET status = 'pending', locked_by = NULL, locked_at = NULL
      WHERE status = 'locked'
        AND locked_at < NOW() - INTERVAL '${timeoutMs} milliseconds'`
 	);
-}
+};

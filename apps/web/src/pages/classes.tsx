@@ -11,7 +11,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-export function ClassesPage() {
+export const ClassesPage = () => {
 	const { t } = useTranslation();
 	const { user } = useAuth();
 	const { data: classes, isLoading } = useClasses();
@@ -146,4 +146,4 @@ export function ClassesPage() {
 			{classes?.length === 0 && !isLoading && <p className="text-center text-muted-foreground">{user?.role === "student" ? t("pages.classes.emptyStudent") : t("pages.classes.emptyStaff")}</p>}
 		</div>
 	);
-}
+};

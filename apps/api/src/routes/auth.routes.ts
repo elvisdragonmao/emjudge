@@ -4,7 +4,7 @@ import { createRouteSchema, toJsonSchema, withErrorResponses } from "../lib/open
 import * as settingsService from "../services/settings.service.js";
 import * as userService from "../services/user.service.js";
 
-export async function authRoutes(app: FastifyInstance) {
+export const authRoutes = async (app: FastifyInstance) => {
 	app.get(
 		"/api/auth/registration-status",
 		{
@@ -84,4 +84,4 @@ export async function authRoutes(app: FastifyInstance) {
 			}
 		}
 	);
-}
+};

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { JudgeResult } from "./base.pipeline.js";
 
-export function collectArtifacts(artifactsDir: string): JudgeResult["artifacts"] {
+export const collectArtifacts = (artifactsDir: string): JudgeResult["artifacts"] => {
 	const artifacts: JudgeResult["artifacts"] = [];
 
 	if (!fs.existsSync(artifactsDir)) {
@@ -33,4 +33,4 @@ export function collectArtifacts(artifactsDir: string): JudgeResult["artifacts"]
 	}
 
 	return artifacts;
-}
+};

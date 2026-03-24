@@ -9,7 +9,7 @@ import { updateUser, useAuth } from "@/stores/auth";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-export function ProfilePage() {
+export const ProfilePage = () => {
 	const { t } = useTranslation();
 	const { user } = useAuth();
 	const updateProfileMutation = useUpdateProfile();
@@ -108,4 +108,4 @@ export function ProfilePage() {
 			</div>
 		</div>
 	);
-}
+};
