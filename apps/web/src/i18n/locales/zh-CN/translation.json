@@ -399,6 +399,11 @@
 			"titleLabel": "标题",
 			"titlePlaceholder": "作业标题",
 			"typeLabel": "题型",
+			"publishStatus": "Publish status",
+			"statusPublished": "Published",
+			"statusDraft": "Draft",
+			"publishAtOptional": "Publish time (optional)",
+			"publishAtHelp": "Leave empty to publish now, or set a future time to schedule publishing.",
 			"dueDateOptional": "截止时间（选填）",
 			"limitByDueDate": "限制截止时间",
 			"allowMultiple": "允许多次提交",
@@ -415,6 +420,7 @@
 			"title": "创建作业",
 			"creating": "创建中...",
 			"submit": "创建作业",
+			"submitDraft": "Create draft assignment",
 			"createFailed": "创建作业失败，请稍后再试"
 		},
 		"assignmentEdit": {
@@ -426,6 +432,9 @@
 			"keepRecords": "保留当前成绩与记录",
 			"deleteRecords": "删除当前所有提交与成绩记录",
 			"deleteHelp": "选择删除时，会清空此作业当前的 submissions/runs/artifacts。",
+			"publishNow": "Publish now",
+			"closeNow": "Close now",
+			"scheduledPublishEnabled": "This assignment will be visible to students at the scheduled time.",
 			"updating": "更新中...",
 			"submit": "保存更改",
 			"updateFailed": "更新作业失败，请稍后再试"
@@ -435,6 +444,7 @@
 			"notFoundTitle": "作业不存在",
 			"uploadFailedTooManyFiles": "提交失败：文件数量超过上限，请确认已排除 node_modules、dist 等产物后再试。",
 			"uploadFailedDefault": "提交失败，请重试。",
+			"scheduled": "Scheduled",
 			"expired": "已截止",
 			"editAssignment": "编辑题目",
 			"dueAt": "截止: {{date}}",
