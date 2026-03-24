@@ -56,7 +56,7 @@
 			"userFiles": "@{{username}} / {{count}} 個檔案"
 		},
 		"scoreChart": {
-			"title": "班級累積分數變化",
+			"title": "計分版",
 			"tooltip": "{{time}}<br/>{{userName}}：{{value}} 分<br/>最新成長作業：{{assignmentTitle}}"
 		},
 		"fileUploader": {
