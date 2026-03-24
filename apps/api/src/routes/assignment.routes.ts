@@ -1,8 +1,9 @@
 import { AssignmentDetail, AssignmentSummary, CreateAssignmentRequest, IdParam, MessageResponse, ReorderAssignmentsRequest, UpdateAssignmentRequest } from "@judge/shared";
 import type { FastifyInstance } from "fastify";
 import { authSecurity, createRouteSchema, toJsonSchema, withErrorResponses } from "../lib/openapi.js";
-import { authenticate, requireRole } from "../middleware/auth.js";
+import { authenticate } from "../middleware/auth.js";
 import * as assignmentService from "../services/assignment.service.js";
+import * as classService from "../services/class.service.js";
 
 export async function assignmentRoutes(app: FastifyInstance) {
 	// List assignments for a class
@@ -23,8 +24,12 @@ export async function assignmentRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const canView = await classService.canViewClass(request.userId, request.userRole, id);
+			if (!canView) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			return assignmentService.listByClass(id);
 		}
 	);
@@ -32,7 +37,7 @@ export async function assignmentRoutes(app: FastifyInstance) {
 	app.patch(
 		"/api/classes/:id/assignments/order",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Assignments"],
 				summary: "Reorder assignments for class",
@@ -47,8 +52,12 @@ export async function assignmentRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			const body = ReorderAssignmentsRequest.parse(request.body);
 			await assignmentService.reorderByClass(id, body.assignmentIds);
 			return { message: "作業順序已更新" };
@@ -79,6 +88,12 @@ export async function assignmentRoutes(app: FastifyInstance) {
 			if (!assignment) {
 				return reply.status(404).send({ error: "作業不存在", statusCode: 404 });
 			}
+
+			const canView = await classService.canViewClass(request.userId, request.userRole, assignment.classId);
+			if (!canView) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
+
 			return assignment;
 		}
 	);
@@ -87,7 +102,7 @@ export async function assignmentRoutes(app: FastifyInstance) {
 	app.post(
 		"/api/assignments",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Assignments"],
 				summary: "Create assignment",
@@ -107,6 +122,10 @@ export async function assignmentRoutes(app: FastifyInstance) {
 		},
 		async (request, reply) => {
 			const body = CreateAssignmentRequest.parse(request.body);
+			const canManage = await classService.canManageClass(request.userId, request.userRole, body.classId);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			const id = await assignmentService.create(body, request.userId);
 			return reply.status(201).send({ id });
 		}
@@ -116,7 +135,7 @@ export async function assignmentRoutes(app: FastifyInstance) {
 	app.patch(
 		"/api/assignments/:id",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Assignments"],
 				summary: "Update assignment",
@@ -131,8 +150,16 @@ export async function assignmentRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const assignment = await assignmentService.getById(id);
+			if (!assignment) {
+				return reply.status(404).send({ error: "作業不存在", statusCode: 404 });
+			}
+			const canManage = await classService.canManageClass(request.userId, request.userRole, assignment.classId);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			const body = UpdateAssignmentRequest.parse(request.body);
 			await assignmentService.update(id, body);
 			return { message: "作業已更新" };
@@ -143,7 +170,7 @@ export async function assignmentRoutes(app: FastifyInstance) {
 	app.delete(
 		"/api/assignments/:id",
 		{
-			preHandler: requireRole("admin", "teacher"),
+			preHandler: authenticate,
 			schema: createRouteSchema({
 				tags: ["Assignments"],
 				summary: "Delete assignment",
@@ -157,8 +184,16 @@ export async function assignmentRoutes(app: FastifyInstance) {
 				)
 			})
 		},
-		async request => {
+		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
+			const assignment = await assignmentService.getById(id);
+			if (!assignment) {
+				return reply.status(404).send({ error: "作業不存在", statusCode: 404 });
+			}
+			const canManage = await classService.canManageClass(request.userId, request.userRole, assignment.classId);
+			if (!canManage) {
+				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
+			}
 			await assignmentService.deleteAssignment(id);
 			return { message: "作業已刪除" };
 		}

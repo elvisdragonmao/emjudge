@@ -14,14 +14,14 @@ import {
 	useReissueClassJoinCode,
 	useRemoveClassMember,
 	useReorderAssignments,
-	useUpdateClassJoinCodeSettings
+	useUpdateClassJoinCodeSettings,
+	useUpdateClassMemberRole
 } from "@/hooks/use-api";
 import { formatDate, i18n } from "@/i18n";
 import { getApiErrorMessage } from "@/lib/api";
 import { Copy, GripVertical, Plus, RotateCcw, UserMinus, UserPlus, Users, X } from "@/lib/icons";
 import { useAuth } from "@/stores/auth";
 import type { AssignmentSummary } from "@judge/shared";
-import { isStaff } from "@judge/shared";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
@@ -33,10 +33,13 @@ export function ClassDetailPage() {
 	const { data: cls, isLoading } = useClassDetail(id!);
 	const { data: scoreHistory } = useClassScoreHistory(id!);
 	const { data: assignments } = useAssignments(id!);
-	const { data: availableMembers, isLoading: isLoadingAvailableMembers } = useAvailableClassMembers(id!);
+	const currentUserClassRole = cls?.members?.find(member => member.id === user?.id)?.role;
+	const canManageClass = !!user && (user.role === "admin" || currentUserClassRole === "teacher");
+	const { data: availableMembers, isLoading: isLoadingAvailableMembers } = useAvailableClassMembers(id!, canManageClass);
 
 	const addMembersMutation = useAddClassMembers(id!);
 	const removeMemberMutation = useRemoveClassMember(id!);
+	const updateMemberRoleMutation = useUpdateClassMemberRole(id!);
 	const reorderAssignmentsMutation = useReorderAssignments(id!);
 	const updateJoinCodeSettingsMutation = useUpdateClassJoinCodeSettings(id!);
 	const reissueJoinCodeMutation = useReissueClassJoinCode(id!);
@@ -80,7 +83,7 @@ export function ClassDetailPage() {
 			!memberIds.has(candidate.id) &&
 			(searchQuery === "" || candidate.username.toLowerCase().includes(searchQuery.toLowerCase()) || candidate.displayName.toLowerCase().includes(searchQuery.toLowerCase()))
 	);
-	const canManageAssignments = !!user && isStaff(user.role);
+	const canManageAssignments = canManageClass;
 	const canDragAssignments = canManageAssignments && !reorderAssignmentsMutation.isPending;
 
 	const handleAddMember = (userId: string) => {
@@ -185,7 +188,7 @@ export function ClassDetailPage() {
 					</div>
 					<p className="text-muted-foreground">{cls.description}</p>
 				</div>
-				{user && isStaff(user.role) && (
+				{canManageClass && (
 					<Button asChild size="sm">
 						<Link to={`/classes/${id}/assignments/new`}>
 							<Plus />
@@ -203,7 +206,7 @@ export function ClassDetailPage() {
 				</Card>
 			)}
 
-			{user && isStaff(user.role) && cls.joinCode && (
+			{canManageClass && cls.joinCode && (
 				<Card>
 					<CardHeader>
 						<CardTitle>{t("pages.classDetail.joinCodeTitle")}</CardTitle>
@@ -356,7 +359,7 @@ export function ClassDetailPage() {
 				))}
 			</div>
 
-			{user && isStaff(user.role) && cls.members && (
+			{canManageClass && cls.members && (
 				<div className="space-y-3">
 					<div className="flex items-center justify-between">
 						<h2 className="text-lg font-semibold">
@@ -373,7 +376,11 @@ export function ClassDetailPage() {
 					{showAddMember && (
 						<Card>
 							<CardContent className="space-y-3 pt-4">
-								{memberMessage && <p className={`text-sm ${addMembersMutation.isError || removeMemberMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>{memberMessage}</p>}
+								{memberMessage && (
+									<p className={`text-sm ${addMembersMutation.isError || removeMemberMutation.isError || updateMemberRoleMutation.isError ? "text-destructive" : "text-muted-foreground"}`}>
+										{memberMessage}
+									</p>
+								)}
 								<Input placeholder={t("pages.classDetail.searchPlaceholder")} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
 								{isLoadingAvailableMembers && <p className="text-sm text-muted-foreground">{t("common.loading")}</p>}
 								{!isLoadingAvailableMembers && availableUsers.length === 0 && (
@@ -410,7 +417,24 @@ export function ClassDetailPage() {
 								<span>{member.username}</span>
 								<span>{member.displayName}</span>
 								<span>
-									<Badge variant="outline">{t(`roles.${member.role}`)}</Badge>
+									<select
+										value={member.role}
+										onChange={event => {
+											setMemberMessage("");
+											updateMemberRoleMutation.mutate(
+												{ userId: member.id, role: event.target.value as "teacher" | "student" },
+												{
+													onSuccess: data => setMemberMessage(data.message),
+													onError: error => setMemberMessage(getApiErrorMessage(error, t("pages.classDetail.memberActionFailed")))
+												}
+											);
+										}}
+										disabled={updateMemberRoleMutation.isPending}
+										className="h-8 rounded-md border border-border bg-background px-2 text-xs"
+									>
+										<option value="student">{t("roles.student")}</option>
+										<option value="teacher">{t("roles.teacher")}</option>
+									</select>
 								</span>
 								<span className="text-right">
 									<Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleRemoveMember(member.id)} disabled={removeMemberMutation.isPending}>

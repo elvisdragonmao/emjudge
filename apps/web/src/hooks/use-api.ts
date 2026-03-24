@@ -18,6 +18,7 @@ import type {
 	SubmissionDetail,
 	SubmissionListResponse,
 	UpdateClassJoinCodeSettingsRequest,
+	UpdateClassMemberRoleRequest,
 	UpdateRegistrationSettingsRequest,
 	UserListResponse,
 	UserSummary
@@ -108,11 +109,11 @@ export function useClassScoreHistory(classId: string) {
 	});
 }
 
-export function useAvailableClassMembers(classId: string) {
+export function useAvailableClassMembers(classId: string, enabled = true) {
 	return useQuery({
 		queryKey: queryKeys.availableClassMembers(classId),
 		queryFn: () => api.get<UserSummary[]>(`/classes/${classId}/available-members`),
-		enabled: !!classId
+		enabled: !!classId && enabled
 	});
 }
 
@@ -152,6 +153,16 @@ export function useRemoveClassMember(classId: string) {
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) });
 			qc.invalidateQueries({ queryKey: queryKeys.availableClassMembers(classId) });
+		}
+	});
+}
+
+export function useUpdateClassMemberRole(classId: string) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (data: UpdateClassMemberRoleRequest) => api.patch<MessageResponse>(`/classes/${classId}/members/role`, data),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.classDetail(classId) });
 		}
 	});
 }

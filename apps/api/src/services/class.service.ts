@@ -15,6 +15,10 @@ interface ClassRow {
 	assignment_count?: string;
 }
 
+interface ClassMemberRoleRow {
+	role: "teacher" | "student";
+}
+
 function toSummary(row: ClassRow) {
 	return {
 		id: row.id,
@@ -94,14 +98,14 @@ export async function getClassDetail(id: string, includeJoinCode = false) {
 		id: string;
 		username: string;
 		display_name: string;
-		role: string;
+		class_role: "teacher" | "student";
 		created_at: Date;
 	}>(
-		`SELECT u.id, u.username, u.display_name, u.role, u.created_at
+		`SELECT u.id, u.username, u.display_name, cm.role AS class_role, u.created_at
      FROM users u
      JOIN class_members cm ON cm.user_id = u.id
-     WHERE cm.class_id = $1
-     ORDER BY u.username`,
+      WHERE cm.class_id = $1
+		 ORDER BY cm.role ASC, u.username ASC`,
 		[id]
 	);
 
@@ -112,7 +116,7 @@ export async function getClassDetail(id: string, includeJoinCode = false) {
 			id: m.id,
 			username: m.username,
 			displayName: m.display_name,
-			role: m.role as "admin" | "teacher" | "student",
+			role: m.class_role,
 			createdAt: m.created_at.toISOString()
 		}))
 	};
@@ -120,12 +124,28 @@ export async function getClassDetail(id: string, includeJoinCode = false) {
 
 export async function createClass(name: string, description: string, createdBy: string) {
 	const joinCode = await generateUniqueJoinCode();
-	const row = await queryOne<ClassRow>(
-		`INSERT INTO classes (name, description, created_by, join_code, join_code_enabled)
-     VALUES ($1, $2, $3, $4, true) RETURNING *`,
-		[name, description, createdBy, joinCode]
-	);
-	return row ? toSummary(row) : null;
+
+	return transaction(async client => {
+		const result = await client.query<ClassRow>(
+			`INSERT INTO classes (name, description, created_by, join_code, join_code_enabled)
+       VALUES ($1, $2, $3, $4, true) RETURNING *`,
+			[name, description, createdBy, joinCode]
+		);
+
+		const row = result.rows[0] ?? null;
+		if (!row) {
+			return null;
+		}
+
+		await client.query(
+			`INSERT INTO class_members (class_id, user_id, role)
+         VALUES ($1, $2, 'teacher')
+         ON CONFLICT (class_id, user_id) DO UPDATE SET role = EXCLUDED.role`,
+			[row.id, createdBy]
+		);
+
+		return toSummary(row);
+	});
 }
 
 export async function updateClass(id: string, data: { name?: string; description?: string; joinCodeEnabled?: boolean }) {
@@ -154,7 +174,7 @@ export async function updateClass(id: string, data: { name?: string; description
 
 export async function addMembers(classId: string, userIds: string[]) {
 	for (const userId of userIds) {
-		await query(`INSERT INTO class_members (class_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [classId, userId]);
+		await query(`INSERT INTO class_members (class_id, user_id, role) VALUES ($1, $2, 'student') ON CONFLICT DO NOTHING`, [classId, userId]);
 	}
 }
 
@@ -220,7 +240,7 @@ export async function joinClassByCode(code: string, userId: string) {
 			return { type: "already_joined" as const, classId: cls.id };
 		}
 
-		await client.query("INSERT INTO class_members (class_id, user_id) VALUES ($1, $2)", [cls.id, userId]);
+		await client.query("INSERT INTO class_members (class_id, user_id, role) VALUES ($1, $2, 'student')", [cls.id, userId]);
 		return { type: "joined" as const, classId: cls.id };
 	});
 }
@@ -232,6 +252,32 @@ export async function removeMember(classId: string, userId: string) {
 export async function isUserInClass(userId: string, classId: string) {
 	const row = await queryOne("SELECT 1 FROM class_members WHERE class_id = $1 AND user_id = $2", [classId, userId]);
 	return row !== null;
+}
+
+export async function getClassMemberRole(userId: string, classId: string) {
+	const row = await queryOne<ClassMemberRoleRow>("SELECT role FROM class_members WHERE class_id = $1 AND user_id = $2", [classId, userId]);
+	return row?.role ?? null;
+}
+
+export async function canManageClass(userId: string, userRole: string, classId: string) {
+	if (userRole === "admin") {
+		return true;
+	}
+
+	const classRole = await getClassMemberRole(userId, classId);
+	return classRole === "teacher";
+}
+
+export async function canViewClass(userId: string, userRole: string, classId: string) {
+	if (userRole === "admin") {
+		return true;
+	}
+
+	return isUserInClass(userId, classId);
+}
+
+export async function updateMemberRole(classId: string, userId: string, role: "teacher" | "student") {
+	await query("UPDATE class_members SET role = $1 WHERE class_id = $2 AND user_id = $3", [role, classId, userId]);
 }
 
 export async function getClassScoreHistory(classId: string) {

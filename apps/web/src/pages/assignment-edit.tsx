@@ -4,9 +4,10 @@ import { TestTemplatePicker } from "@/components/test-template-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useAssignmentDetail, useUpdateAssignment } from "@/hooks/use-api";
+import { useAssignmentDetail, useClassDetail, useUpdateAssignment } from "@/hooks/use-api";
 import { getApiErrorMessage } from "@/lib/api";
 import { Code2, Eye, FileCode2, Save, Sparkles, X } from "@/lib/icons";
+import { useAuth } from "@/stores/auth";
 import { DEFAULT_REACT_ASSIGNMENT_SPEC } from "@judge/shared";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -16,7 +17,9 @@ export function AssignmentEditPage() {
 	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
+	const { user } = useAuth();
 	const { data: assignment, isLoading } = useAssignmentDetail(id!);
+	const { data: cls } = useClassDetail(assignment?.classId ?? "");
 	const updateMutation = useUpdateAssignment(id!);
 
 	const [title, setTitle] = useState("");
@@ -97,6 +100,18 @@ export function AssignmentEditPage() {
 			<>
 				<PageTitle title={t("pages.assignmentEdit.notFoundTitle")} />
 				<p className="text-muted-foreground">{t("pages.assignmentEdit.notFoundTitle")}</p>
+			</>
+		);
+	}
+
+	const currentUserClassRole = cls?.members.find(member => member.id === user?.id)?.role;
+	const canManageClass = !!user && (user.role === "admin" || currentUserClassRole === "teacher");
+
+	if (cls && !canManageClass) {
+		return (
+			<>
+				<PageTitle title={t("pages.assignmentEdit.title")} />
+				<p className="text-muted-foreground">Forbidden</p>
 			</>
 		);
 	}

@@ -66,8 +66,8 @@ export function App() {
 						<Route path="submissions/:id" element={<SubmissionDetailPage />} />
 					</Route>
 
-					{/* Staff only */}
-					<Route element={<AuthGuard allowedRoles={["admin", "teacher"]} />}>
+					{/* Authenticated */}
+					<Route element={<AuthGuard />}>
 						<Route path="classes/:classId/assignments/new" element={<AssignmentCreatePage />} />
 						<Route path="assignments/:id/edit" element={<AssignmentEditPage />} />
 					</Route>

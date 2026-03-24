@@ -53,6 +53,31 @@ interface ArtifactRow {
 	minio_key: string;
 }
 
+async function getClassMemberRoleByAssignment(userId: string, assignmentId: string) {
+	const row = await queryOne<{ role: "teacher" | "student" }>(
+		`SELECT cm.role
+       FROM assignments a
+       JOIN class_members cm ON cm.class_id = a.class_id
+       WHERE a.id = $1 AND cm.user_id = $2`,
+		[assignmentId, userId]
+	);
+
+	return row?.role ?? null;
+}
+
+async function getClassMemberRoleBySubmission(userId: string, submissionId: string) {
+	const row = await queryOne<{ role: "teacher" | "student" }>(
+		`SELECT cm.role
+       FROM submissions s
+       JOIN assignments a ON a.id = s.assignment_id
+       JOIN class_members cm ON cm.class_id = a.class_id
+       WHERE s.id = $1 AND cm.user_id = $2`,
+		[submissionId, userId]
+	);
+
+	return row?.role ?? null;
+}
+
 export async function createSubmission(assignmentId: string, userId: string, files: Array<{ path: string; buffer: Buffer }>) {
 	return transaction(async client => {
 		const result = await client.query(
@@ -217,40 +242,25 @@ export async function getDetail(submissionId: string) {
 }
 
 export async function canUserViewAssignmentSubmissions(userId: string, userRole: string, assignmentId: string) {
-	if (userRole !== "student") {
+	if (userRole === "admin") {
 		return true;
 	}
 
-	const row = await queryOne(
-		`SELECT 1
-     FROM assignments a
-     JOIN class_members cm ON cm.class_id = a.class_id
-     WHERE a.id = $1 AND cm.user_id = $2`,
-		[assignmentId, userId]
-	);
-
-	return row !== null;
+	const classRole = await getClassMemberRoleByAssignment(userId, assignmentId);
+	return classRole !== null;
 }
 
 export async function canUserViewSubmission(userId: string, userRole: string, submissionId: string) {
-	if (userRole !== "student") {
+	if (userRole === "admin") {
 		return true;
 	}
 
-	const row = await queryOne(
-		`SELECT 1
-     FROM submissions s
-     JOIN assignments a ON a.id = s.assignment_id
-     JOIN class_members cm ON cm.class_id = a.class_id
-     WHERE s.id = $1 AND cm.user_id = $2`,
-		[submissionId, userId]
-	);
-
-	return row !== null;
+	const classRole = await getClassMemberRoleBySubmission(userId, submissionId);
+	return classRole !== null;
 }
 
 export async function canUserViewArtifact(userId: string, userRole: string, artifactId: string) {
-	if (userRole !== "student") {
+	if (userRole === "admin") {
 		return true;
 	}
 
@@ -265,6 +275,19 @@ export async function canUserViewArtifact(userId: string, userRole: string, arti
 	);
 
 	return row !== null;
+}
+
+export async function canUserRejudgeSubmission(userId: string, userRole: string, submissionId: string, submissionOwnerId: string) {
+	if (userRole === "admin") {
+		return true;
+	}
+
+	const classRole = await getClassMemberRoleBySubmission(userId, submissionId);
+	if (classRole === "teacher") {
+		return true;
+	}
+
+	return submissionOwnerId === userId;
 }
 
 export async function listByUser(userId: string, assignmentId: string) {

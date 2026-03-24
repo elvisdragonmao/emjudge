@@ -8,6 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ─── Enums ───────────────────────────────────────────────
 DO $$ BEGIN CREATE TYPE user_role AS ENUM ('admin', 'teacher', 'student'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE class_member_role AS ENUM ('teacher', 'student'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE assignment_type AS ENUM ('html-css-js', 'react'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE submission_status AS ENUM ('pending', 'queued', 'running', 'completed', 'failed', 'error'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE judge_job_status AS ENUM ('pending', 'locked', 'running', 'completed', 'failed', 'dead'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -68,10 +69,13 @@ CREATE TABLE IF NOT EXISTS class_members (
   id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   class_id  UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   user_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role      class_member_role NOT NULL DEFAULT 'student',
   joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   CONSTRAINT uq_class_member UNIQUE (class_id, user_id)
 );
+
+ALTER TABLE class_members ADD COLUMN IF NOT EXISTS role class_member_role NOT NULL DEFAULT 'student';
 
 CREATE INDEX IF NOT EXISTS idx_class_members_user ON class_members (user_id);
 CREATE INDEX IF NOT EXISTS idx_class_members_class ON class_members (class_id);
