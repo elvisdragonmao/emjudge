@@ -11,7 +11,7 @@ const EnvSchema = z.object({
 	MINIO_USE_SSL: z
 		.string()
 		.transform(v => v === "true")
-		.default("false"),
+		.default(false),
 
 	WORKER_ID: z.string().default(`worker-${process.pid}`),
 	POLL_INTERVAL_MS: z.coerce.number().default(3000),

@@ -1,6 +1,8 @@
 {
 	"extends": "@judge/config/tsconfig.react.json",
 	"compilerOptions": {
+		"ignoreDeprecations": "6.0",
+		"noUncheckedSideEffectImports": false,
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]

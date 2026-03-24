@@ -1,9 +1,8 @@
 import { ErrorResponse } from "@judge/shared";
 import type { FastifySchema } from "fastify";
-import { z, type ZodTypeAny } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { z, type ZodType } from "zod";
 
-type SchemaMap = Record<number, ZodTypeAny | Record<string, unknown>>;
+type SchemaMap = Record<number, ZodType | Record<string, unknown>>;
 
 const stripJsonSchemaMeta = (value: unknown): unknown => {
 	if (Array.isArray(value)) {
@@ -21,21 +20,8 @@ const stripJsonSchemaMeta = (value: unknown): unknown => {
 	return Object.fromEntries(entries);
 };
 
-export const toJsonSchema = (schema: ZodTypeAny, name?: string) => {
-	const jsonSchema = stripJsonSchemaMeta(
-		zodToJsonSchema(schema, {
-			name,
-			target: "openApi3",
-			$refStrategy: "none"
-		})
-	) as Record<string, unknown>;
-
-	const definitions = jsonSchema.definitions as Record<string, unknown> | undefined;
-	if (name && definitions && name in definitions) {
-		return definitions[name] as Record<string, unknown>;
-	}
-
-	return jsonSchema;
+export const toJsonSchema = (schema: ZodType, _name?: string) => {
+	return stripJsonSchemaMeta(z.toJSONSchema(schema)) as Record<string, unknown>;
 };
 
 export const buildResponseSchemas = (schemas: SchemaMap) => {
