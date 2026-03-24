@@ -1,6 +1,6 @@
 name: Feature request
 description: Suggest an improvement for assignments, grading, management workflows, or developer experience.
-title: "feat: "
+title: "[Feature] "
 labels:
   - enhancement
 body:

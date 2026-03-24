@@ -1,6 +1,6 @@
 name: Bug report
 description: Report a reproducible problem in the web app, API, worker, or tooling.
-title: "bug: "
+title: "[Bug] "
 labels:
   - bug
 body:
@@ -64,7 +64,6 @@ body:
     attributes:
       label: Logs, screenshots, or payloads
       description: Paste any helpful console logs, API responses, screenshots, or stack traces.
-      render: shell
   - type: textarea
     id: environment
     attributes:
