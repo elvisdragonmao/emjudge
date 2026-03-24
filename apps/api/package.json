@@ -11,24 +11,24 @@
 		"start": "node dist/index.js"
 	},
 	"dependencies": {
-		"@fastify/cors": "^11.0.0",
-		"@fastify/jwt": "^9.0.0",
-		"@fastify/multipart": "^9.0.0",
+		"@fastify/cors": "^11.2.0",
+		"@fastify/jwt": "^10.0.0",
+		"@fastify/multipart": "^9.4.0",
 		"@fastify/swagger": "^9.7.0",
 		"@fastify/swagger-ui": "^5.2.5",
 		"@judge/shared": "workspace:*",
 		"bcrypt": "^6.0.0",
-		"fastify": "^5.3.3",
-		"minio": "^8.0.5",
-		"pg": "^8.16.0",
-		"zod": "^3.25.67",
+		"fastify": "^5.8.4",
+		"minio": "^8.0.7",
+		"pg": "^8.20.0",
+		"zod": "^4.3.6",
 		"zod-to-json-schema": "^3.25.1"
 	},
 	"devDependencies": {
 		"@judge/config": "workspace:*",
-		"@types/bcrypt": "^5.0.2",
-		"@types/pg": "^8.15.4",
-		"tsx": "^4.19.0",
-		"typescript": "^5.8.3"
+		"@types/bcrypt": "^6.0.0",
+		"@types/pg": "^8.20.0",
+		"tsx": "^4.21.0",
+		"typescript": "^6.0.2"
 	}
 }
