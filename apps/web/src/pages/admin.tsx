@@ -232,13 +232,13 @@ export function AdminPage() {
 										<p className="text-sm font-medium">{user.displayName}</p>
 										<p className="text-xs text-muted-foreground">@{user.username}</p>
 									</div>
-									<Badge variant="outline">{t(`roles.${user.role}`)}</Badge>
+									{user.role === "admin" && <Badge variant="outline">{t(`roles.${user.role}`)}</Badge>}
 									{user.classes && user.classes.length > 0 && (
 										<div className="flex items-center gap-1">
 											{user.classes.map(cls => (
 												<Link key={cls.id} to={`/classes/${cls.id}`}>
 													<Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
-														{cls.name}
+														{`${cls.name}-${t(`roles.${cls.role}`)}`}
 													</Badge>
 												</Link>
 											))}
