@@ -16,6 +16,7 @@ interface UserRow {
 interface UserClassRow {
 	id: string;
 	name: string;
+	role: "teacher" | "student";
 }
 
 function toSummary(row: UserRow, classes: UserClassRow[] = []) {
@@ -24,7 +25,7 @@ function toSummary(row: UserRow, classes: UserClassRow[] = []) {
 		username: row.username,
 		displayName: row.display_name,
 		role: row.role as "admin" | "teacher" | "student",
-		classes: classes.map(c => ({ id: c.id, name: c.name })),
+		classes: classes.map(c => ({ id: c.id, name: c.name, role: c.role })),
 		createdAt: row.created_at.toISOString()
 	};
 }
@@ -53,8 +54,9 @@ export async function listUsers(page: number, limit: number) {
 			user_id: string;
 			class_id: string;
 			class_name: string;
+			class_role: "teacher" | "student";
 		}>(
-			`SELECT cm.user_id, c.id AS class_id, c.name AS class_name
+			`SELECT cm.user_id, c.id AS class_id, c.name AS class_name, cm.role AS class_role
        FROM class_members cm
        JOIN classes c ON c.id = cm.class_id
        WHERE cm.user_id IN (${placeholders})
@@ -63,7 +65,7 @@ export async function listUsers(page: number, limit: number) {
 		);
 		for (const row of classRows) {
 			const list = classMap.get(row.user_id) ?? [];
-			list.push({ id: row.class_id, name: row.class_name });
+			list.push({ id: row.class_id, name: row.class_name, role: row.class_role });
 			classMap.set(row.user_id, list);
 		}
 	}

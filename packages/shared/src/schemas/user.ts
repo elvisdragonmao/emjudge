@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { ClassMemberRole } from "./class.js";
 
 export const UserClassInfo = z.object({
 	id: z.string().uuid(),
-	name: z.string()
+	name: z.string(),
+	role: ClassMemberRole
 });
 export type UserClassInfo = z.infer<typeof UserClassInfo>;
 
