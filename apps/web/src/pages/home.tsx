@@ -5,7 +5,7 @@ import { useAuth } from "@/stores/auth";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-export function HomePage() {
+export const HomePage = () => {
 	const { isAuthenticated } = useAuth();
 	const { t } = useTranslation();
 
@@ -97,4 +97,4 @@ export function HomePage() {
 			</section>
 		</div>
 	);
-}
+};

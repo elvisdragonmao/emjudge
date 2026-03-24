@@ -11,7 +11,7 @@ export const minioClient = new Minio.Client({
 });
 
 /** Ensure required buckets exist */
-export async function ensureBuckets() {
+export const ensureBuckets = async () => {
 	for (const bucket of Object.values(MINIO_BUCKETS)) {
 		const exists = await minioClient.bucketExists(bucket);
 		if (!exists) {
@@ -19,17 +19,17 @@ export async function ensureBuckets() {
 			console.log(`Created MinIO bucket: ${bucket}`);
 		}
 	}
-}
+};
 
 /** Upload a buffer to MinIO */
-export async function uploadBuffer(bucket: string, key: string, buffer: Buffer, contentType?: string) {
+export const uploadBuffer = async (bucket: string, key: string, buffer: Buffer, contentType?: string) => {
 	await minioClient.putObject(bucket, key, buffer, buffer.length, {
 		"Content-Type": contentType ?? "application/octet-stream"
 	});
-}
+};
 
 /** Get a presigned URL for viewing */
-export async function getPresignedUrl(bucket: string, key: string, expiry = 3600): Promise<string> {
+export const getPresignedUrl = async (bucket: string, key: string, expiry = 3600): Promise<string> => {
 	const url = await minioClient.presignedGetObject(bucket, key, expiry);
 	const base = config.MINIO_PUBLIC_BASE_URL.trim();
 	if (!base) return url;
@@ -50,14 +50,14 @@ export async function getPresignedUrl(bucket: string, key: string, expiry = 3600
 	} catch {
 		return url;
 	}
-}
+};
 
 /** Download file as buffer */
-export async function downloadBuffer(bucket: string, key: string): Promise<Buffer> {
+export const downloadBuffer = async (bucket: string, key: string): Promise<Buffer> => {
 	const stream = await minioClient.getObject(bucket, key);
 	const chunks: Buffer[] = [];
 	for await (const chunk of stream) {
 		chunks.push(Buffer.from(chunk));
 	}
 	return Buffer.concat(chunks);
-}
+};

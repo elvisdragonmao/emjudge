@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-export function AdminPage() {
+export const AdminPage = () => {
 	const { t } = useTranslation();
 	const [page, setPage] = useState(1);
 	const { data: userData, isLoading } = useUsers(page);
@@ -294,4 +294,4 @@ export function AdminPage() {
 			</Card>
 		</div>
 	);
-}
+};

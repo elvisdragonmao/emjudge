@@ -5,21 +5,21 @@ interface AppSettingsRow {
 	registration_enabled: boolean;
 }
 
-async function ensureSettingsRow() {
+const ensureSettingsRow = async () => {
 	await query(
 		`INSERT INTO app_settings (id, registration_enabled)
      VALUES (1, false)
      ON CONFLICT (id) DO NOTHING`
 	);
-}
+};
 
-export async function getRegistrationStatus() {
+export const getRegistrationStatus = async () => {
 	await ensureSettingsRow();
 	const row = await queryOne<AppSettingsRow>("SELECT registration_enabled FROM app_settings WHERE id = 1");
 	return { registrationEnabled: row?.registration_enabled ?? false };
-}
+};
 
-export async function updateRegistrationStatus(registrationEnabled: boolean) {
+export const updateRegistrationStatus = async (registrationEnabled: boolean) => {
 	await ensureSettingsRow();
 	const row = await queryOne<AppSettingsRow>(
 		`UPDATE app_settings
@@ -30,4 +30,4 @@ export async function updateRegistrationStatus(registrationEnabled: boolean) {
 	);
 
 	return { registrationEnabled: row?.registration_enabled ?? false };
-}
+};

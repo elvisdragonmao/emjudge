@@ -13,12 +13,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 
-function toDateTimeLocalValue(date: Date) {
+const toDateTimeLocalValue = (date: Date) => {
 	const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
 	return localDate.toISOString().slice(0, 16);
-}
+};
 
-export function AssignmentEditPage() {
+export const AssignmentEditPage = () => {
 	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
@@ -311,4 +311,4 @@ export function AssignmentEditPage() {
 			</form>
 		</div>
 	);
-}
+};

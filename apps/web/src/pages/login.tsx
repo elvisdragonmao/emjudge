@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 
-export function LoginPage() {
+export const LoginPage = () => {
 	const { t } = useTranslation();
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
@@ -78,4 +78,4 @@ export function LoginPage() {
 			</Card>
 		</div>
 	);
-}
+};

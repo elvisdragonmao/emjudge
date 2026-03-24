@@ -5,7 +5,7 @@ import { pool } from "./pool.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function migrate() {
+const migrate = async () => {
 	const schemaPath = path.join(__dirname, "schema.sql");
 	const sql = fs.readFileSync(schemaPath, "utf-8");
 
@@ -13,7 +13,7 @@ async function migrate() {
 	await pool.query(sql);
 	console.log("Migration completed successfully (tables created or already exist).");
 	await pool.end();
-}
+};
 
 migrate().catch(err => {
 	console.error("Migration failed:", err);

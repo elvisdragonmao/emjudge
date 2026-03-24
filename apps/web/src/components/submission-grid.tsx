@@ -10,7 +10,7 @@ interface SubmissionGridProps {
 	submissions: SubmissionSummary[];
 }
 
-export function SubmissionGrid({ submissions }: SubmissionGridProps) {
+export const SubmissionGrid = ({ submissions }: SubmissionGridProps) => {
 	const { t } = useTranslation();
 
 	return (
@@ -52,9 +52,9 @@ export function SubmissionGrid({ submissions }: SubmissionGridProps) {
 			))}
 		</div>
 	);
-}
+};
 
-export function SubmissionList({ submissions }: SubmissionGridProps) {
+export const SubmissionList = ({ submissions }: SubmissionGridProps) => {
 	const { t } = useTranslation();
 
 	return (
@@ -87,4 +87,4 @@ export function SubmissionList({ submissions }: SubmissionGridProps) {
 			))}
 		</div>
 	);
-}
+};

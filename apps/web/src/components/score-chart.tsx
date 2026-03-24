@@ -13,7 +13,7 @@ interface ScoreChartProps {
 	className?: string;
 }
 
-export function ScoreChart({ data, className }: ScoreChartProps) {
+export const ScoreChart = ({ data, className }: ScoreChartProps) => {
 	const chartRef = useRef<HTMLDivElement>(null);
 	const instanceRef = useRef<echarts.ECharts | null>(null);
 	const [chartHeight, setChartHeight] = useState(300);
@@ -177,4 +177,4 @@ export function ScoreChart({ data, className }: ScoreChartProps) {
 	}, [data]);
 
 	return <div ref={chartRef} className={className} style={{ height: chartHeight }} />;
-}
+};

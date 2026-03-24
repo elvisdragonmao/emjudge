@@ -11,7 +11,7 @@ declare module "fastify" {
 }
 
 /** Authenticate JWT — attach userId and userRole to request */
-export async function authenticate(request: FastifyRequest, reply: FastifyReply) {
+export const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
 	try {
 		const decoded = await request.jwtVerify<{ sub: string; role: Role }>();
 		request.userId = decoded.sub;
@@ -19,10 +19,10 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
 	} catch {
 		reply.status(401).send({ error: "Unauthorized", statusCode: 401 });
 	}
-}
+};
 
 /** Require specific role(s) */
-export function requireRole(...roles: Role[]) {
+export const requireRole = (...roles: Role[]) => {
 	return async (request: FastifyRequest, reply: FastifyReply) => {
 		await authenticate(request, reply);
 		if (reply.sent) return;
@@ -30,10 +30,10 @@ export function requireRole(...roles: Role[]) {
 			reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 		}
 	};
-}
+};
 
 /** Require specific permission */
-export function requirePermission(permission: Permission) {
+export const requirePermission = (permission: Permission) => {
 	return async (request: FastifyRequest, reply: FastifyReply) => {
 		await authenticate(request, reply);
 		if (reply.sent) return;
@@ -41,4 +41,4 @@ export function requirePermission(permission: Permission) {
 			reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 		}
 	};
-}
+};

@@ -12,11 +12,11 @@ class ApiError extends Error {
 	}
 }
 
-function getToken(): string | null {
+const getToken = (): string | null => {
 	return localStorage.getItem("token");
-}
+};
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
 	const token = getToken();
 	const headers: Record<string, string> = {
 		...(options.headers as Record<string, string>)
@@ -43,7 +43,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 	}
 
 	return res.json() as Promise<T>;
-}
+};
 
 export const api = {
 	get: <T>(path: string) => request<T>(path),
@@ -73,7 +73,7 @@ export const api = {
 		})
 };
 
-export function getApiErrorMessage(error: unknown, fallback: string) {
+export const getApiErrorMessage = (error: unknown, fallback: string) => {
 	if (error instanceof ApiError) {
 		return error.message || fallback;
 	}
@@ -83,6 +83,6 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
 	}
 
 	return fallback;
-}
+};
 
 export { ApiError };

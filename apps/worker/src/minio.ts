@@ -9,10 +9,10 @@ export const minioClient = new Minio.Client({
 	secretKey: config.MINIO_SECRET_KEY
 });
 
-export async function downloadFile(bucket: string, key: string, destPath: string) {
+export const downloadFile = async (bucket: string, key: string, destPath: string) => {
 	await minioClient.fGetObject(bucket, key, destPath);
-}
+};
 
-export async function uploadFile(bucket: string, key: string, srcPath: string) {
+export const uploadFile = async (bucket: string, key: string, srcPath: string) => {
 	await minioClient.fPutObject(bucket, key, srcPath);
-}
+};

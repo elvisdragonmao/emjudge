@@ -19,7 +19,7 @@ import { authSecurity, createRouteSchema, toJsonSchema, withErrorResponses } fro
 import { authenticate, requireRole } from "../middleware/auth.js";
 import * as classService from "../services/class.service.js";
 
-export async function classRoutes(app: FastifyInstance) {
+export const classRoutes = async (app: FastifyInstance) => {
 	// List classes (staff: all, student: only enrolled)
 	app.get(
 		"/api/classes",
@@ -386,4 +386,4 @@ export async function classRoutes(app: FastifyInstance) {
 			return { message: "成員角色已更新" };
 		}
 	);
-}
+};

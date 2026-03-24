@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { config } from "../config.js";
 import { pool } from "./pool.js";
 
-async function seed() {
+const seed = async () => {
 	console.log("Seeding database...");
 
 	const password = config.DEFAULT_ADMIN_PASSWORD;
@@ -17,7 +17,7 @@ async function seed() {
 
 	console.log(`Seed completed. Default admin: admin / ${password}`);
 	await pool.end();
-}
+};
 
 seed().catch(err => {
 	console.error("Seed failed:", err);

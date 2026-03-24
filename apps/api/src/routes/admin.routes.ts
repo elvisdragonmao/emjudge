@@ -28,7 +28,7 @@ const BulkImportResult = z.object({
 	)
 });
 
-export async function adminRoutes(app: FastifyInstance) {
+export const adminRoutes = async (app: FastifyInstance) => {
 	const adminOnly = requireRole("admin");
 
 	app.get(
@@ -174,4 +174,4 @@ export async function adminRoutes(app: FastifyInstance) {
 			return { message: "密碼已重置" };
 		}
 	);
-}
+};

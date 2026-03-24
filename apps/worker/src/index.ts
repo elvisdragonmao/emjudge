@@ -25,11 +25,11 @@ interface JobRow {
 let activeJob: JobRow | null = null;
 let shuttingDown = false;
 
-function stepLog(message: string) {
+const stepLog = (message: string) => {
 	return `[${new Date().toISOString()}] ${message}`;
-}
+};
 
-function formatJudgeResultLog(result: JudgeResult) {
+const formatJudgeResultLog = (result: JudgeResult) => {
 	const lines = [stepLog("Judge result summary"), stepLog(`Score: ${result.score}/${result.maxScore}`)];
 
 	if (result.testResults.length === 0) {
@@ -44,16 +44,16 @@ function formatJudgeResultLog(result: JudgeResult) {
 	}
 
 	return lines.join("\n");
-}
+};
 
-async function appendRunLog(runId: string, message: string) {
+const appendRunLog = async (runId: string, message: string) => {
 	await query(
 		`UPDATE submission_runs
      SET log = COALESCE(log || E'\n', '') || $1
      WHERE id = $2`,
 		[stepLog(message), runId]
 	);
-}
+};
 
 interface SpecRow {
 	start_command: string;
@@ -64,7 +64,7 @@ interface SpecRow {
 	type: string;
 }
 
-async function acquireJob(): Promise<JobRow | null> {
+const acquireJob = async (): Promise<JobRow | null> => {
 	return queryOne<JobRow>(
 		`UPDATE judge_jobs
      SET status = 'locked', locked_by = $1, locked_at = NOW(), attempts = attempts + 1
@@ -78,9 +78,9 @@ async function acquireJob(): Promise<JobRow | null> {
      RETURNING *`,
 		[config.WORKER_ID]
 	);
-}
+};
 
-async function processJob(job: JobRow) {
+const processJob = async (job: JobRow) => {
 	activeJob = job;
 	console.log(`[${config.WORKER_ID}] Processing job ${job.id} (submission: ${job.submission_id})`);
 
@@ -193,9 +193,9 @@ async function processJob(job: JobRow) {
 		}
 		activeJob = null;
 	}
-}
+};
 
-async function failJob(job: JobRow, errorMessage: string) {
+const failJob = async (job: JobRow, errorMessage: string) => {
 	const isLastAttempt = job.attempts >= job.max_attempts;
 	const jobStatus = isLastAttempt ? "dead" : "pending";
 	const subStatus = isLastAttempt ? "error" : "failed";
@@ -219,9 +219,9 @@ async function failJob(job: JobRow, errorMessage: string) {
 	);
 
 	await query(`UPDATE submissions SET status = $1::submission_status WHERE id = $2`, [subStatus, job.submission_id]);
-}
+};
 
-async function recoverStaleJobs() {
+const recoverStaleJobs = async () => {
 	// First, mark exhausted jobs as dead
 	const exhaustedJobs = await queryMany<{
 		id: string;
@@ -301,9 +301,9 @@ async function recoverStaleJobs() {
 	);
 
 	console.warn(`[${config.WORKER_ID}] Recovered ${staleJobs.length} in-progress job(s) at startup and re-queued`);
-}
+};
 
-async function gracefulShutdown(signal: string) {
+const gracefulShutdown = async (signal: string) => {
 	if (shuttingDown) return;
 	shuttingDown = true;
 	console.warn(`[${config.WORKER_ID}] Received ${signal}, shutting down...`);
@@ -318,10 +318,10 @@ async function gracefulShutdown(signal: string) {
 		console.error(`[${config.WORKER_ID}] Graceful shutdown failed:`, err);
 		process.exit(1);
 	}
-}
+};
 
 // ─── Main loop ───────────────────────────────────────────
-async function main() {
+const main = async () => {
 	console.log(`[${config.WORKER_ID}] Judge worker starting...`);
 	console.log(`[${config.WORKER_ID}] Poll interval: ${config.POLL_INTERVAL_MS}ms`);
 	console.log(`[${config.WORKER_ID}] Work dir: ${config.WORK_DIR}`);
@@ -355,7 +355,7 @@ async function main() {
 			await new Promise(resolve => setTimeout(resolve, config.POLL_INTERVAL_MS));
 		}
 	}
-}
+};
 
 process.on("SIGINT", () => {
 	void gracefulShutdown("SIGINT");

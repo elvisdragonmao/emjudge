@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useNavigate } from "react-router";
 
-export function AppLayout() {
+export const AppLayout = () => {
 	const { user, logout } = useAuth();
 	const navigate = useNavigate();
 	const { t } = useTranslation();
@@ -94,4 +94,4 @@ export function AppLayout() {
 			</footer>
 		</div>
 	);
-}
+};

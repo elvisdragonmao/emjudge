@@ -25,7 +25,7 @@ const RejudgeResponse = z.object({
 	runId: z.string().uuid()
 });
 
-export async function submissionRoutes(app: FastifyInstance) {
+export const submissionRoutes = async (app: FastifyInstance) => {
 	// Upload submission (student only)
 	app.post(
 		"/api/assignments/:id/submit",
@@ -278,4 +278,4 @@ export async function submissionRoutes(app: FastifyInstance) {
 			return { url };
 		}
 	);
-}
+};

@@ -4,11 +4,11 @@ import path from "node:path";
 const CLEANUP_MARKER_FILE = ".last-cleanup-tw";
 const TAIWAN_UTC_OFFSET_HOURS = 8;
 
-function formatLocalDateKey(date: Date): string {
+const formatLocalDateKey = (date: Date): string => {
 	return date.toISOString().slice(0, 10);
-}
+};
 
-function getCleanupWindowKey(now: Date, cleanupHourTw: number): string {
+const getCleanupWindowKey = (now: Date, cleanupHourTw: number): string => {
 	const shifted = new Date(now.getTime() + TAIWAN_UTC_OFFSET_HOURS * 60 * 60 * 1000);
 
 	if (shifted.getUTCHours() < cleanupHourTw) {
@@ -16,9 +16,9 @@ function getCleanupWindowKey(now: Date, cleanupHourTw: number): string {
 	}
 
 	return formatLocalDateKey(shifted);
-}
+};
 
-export function prepareSharedPnpmStore(storeDir: string, cleanupHourTw: number): { cleaned: boolean; cleanupKey: string } {
+export const prepareSharedPnpmStore = (storeDir: string, cleanupHourTw: number): { cleaned: boolean; cleanupKey: string } => {
 	fs.mkdirSync(storeDir, { recursive: true });
 	fs.chmodSync(storeDir, 0o755);
 
@@ -37,4 +37,4 @@ export function prepareSharedPnpmStore(storeDir: string, cleanupHourTw: number):
 	fs.writeFileSync(markerPath, cleanupKey, "utf-8");
 	fs.chmodSync(storeDir, 0o755);
 	return { cleaned: true, cleanupKey };
-}
+};

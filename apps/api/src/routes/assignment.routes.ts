@@ -5,7 +5,7 @@ import { authenticate } from "../middleware/auth.js";
 import * as assignmentService from "../services/assignment.service.js";
 import * as classService from "../services/class.service.js";
 
-export async function assignmentRoutes(app: FastifyInstance) {
+export const assignmentRoutes = async (app: FastifyInstance) => {
 	// List assignments for a class
 	app.get(
 		"/api/classes/:id/assignments",
@@ -205,4 +205,4 @@ export async function assignmentRoutes(app: FastifyInstance) {
 			return { message: "作業已刪除" };
 		}
 	);
-}
+};

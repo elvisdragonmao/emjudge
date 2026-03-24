@@ -16,7 +16,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 
-export function AssignmentDetailPage() {
+export const AssignmentDetailPage = () => {
 	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
 	const { user } = useAuth();
@@ -201,4 +201,4 @@ export function AssignmentDetailPage() {
 			</div>
 		</div>
 	);
-}
+};

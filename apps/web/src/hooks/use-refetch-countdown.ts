@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export function useRefetchCountdown(enabled: boolean, intervalMs: number, resetAtMs: number) {
+export const useRefetchCountdown = (enabled: boolean, intervalMs: number, resetAtMs: number) => {
 	const intervalSeconds = Math.ceil(intervalMs / 1000);
 	const [secondsLeft, setSecondsLeft] = useState(intervalSeconds);
 
@@ -23,4 +23,4 @@ export function useRefetchCountdown(enabled: boolean, intervalMs: number, resetA
 	}, [enabled, intervalMs, intervalSeconds, resetAtMs]);
 
 	return secondsLeft;
-}
+};

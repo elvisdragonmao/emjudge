@@ -45,7 +45,7 @@ void i18n.use(initReactI18next).init({
 	}
 });
 
-function syncLanguage(language: string) {
+const syncLanguage = (language: string) => {
 	const normalized = normalizeLanguageTag(language);
 
 	if (typeof window !== "undefined") {
@@ -55,7 +55,7 @@ function syncLanguage(language: string) {
 	if (typeof document !== "undefined") {
 		document.documentElement.lang = normalized;
 	}
-}
+};
 
 syncLanguage(i18n.resolvedLanguage ?? i18n.language);
 
@@ -63,17 +63,17 @@ i18n.on("languageChanged", language => {
 	syncLanguage(language);
 });
 
-export function formatDateTime(value: string | number | Date) {
+export const formatDateTime = (value: string | number | Date) => {
 	return new Intl.DateTimeFormat(getDateTimeLocale(i18n.resolvedLanguage ?? i18n.language), {
 		dateStyle: "medium",
 		timeStyle: "short"
 	}).format(new Date(value));
-}
+};
 
-export function formatDate(value: string | number | Date) {
+export const formatDate = (value: string | number | Date) => {
 	return new Intl.DateTimeFormat(getDateTimeLocale(i18n.resolvedLanguage ?? i18n.language), {
 		dateStyle: "medium"
 	}).format(new Date(value));
-}
+};
 
 export { i18n };

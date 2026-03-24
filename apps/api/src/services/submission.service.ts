@@ -53,7 +53,7 @@ interface ArtifactRow {
 	minio_key: string;
 }
 
-async function getClassMemberRoleByAssignment(userId: string, assignmentId: string) {
+const getClassMemberRoleByAssignment = async (userId: string, assignmentId: string) => {
 	const row = await queryOne<{ role: "teacher" | "student" }>(
 		`SELECT cm.role
        FROM assignments a
@@ -63,9 +63,9 @@ async function getClassMemberRoleByAssignment(userId: string, assignmentId: stri
 	);
 
 	return row?.role ?? null;
-}
+};
 
-async function getClassMemberRoleBySubmission(userId: string, submissionId: string) {
+const getClassMemberRoleBySubmission = async (userId: string, submissionId: string) => {
 	const row = await queryOne<{ role: "teacher" | "student" }>(
 		`SELECT cm.role
        FROM submissions s
@@ -76,9 +76,9 @@ async function getClassMemberRoleBySubmission(userId: string, submissionId: stri
 	);
 
 	return row?.role ?? null;
-}
+};
 
-export async function createSubmission(assignmentId: string, userId: string, files: Array<{ path: string; buffer: Buffer }>) {
+export const createSubmission = async (assignmentId: string, userId: string, files: Array<{ path: string; buffer: Buffer }>) => {
 	return transaction(async client => {
 		const result = await client.query(
 			`INSERT INTO submissions (assignment_id, user_id, file_count, status)
@@ -119,9 +119,9 @@ export async function createSubmission(assignmentId: string, userId: string, fil
 
 		return submissionId;
 	});
-}
+};
 
-export async function listByAssignment(assignmentId: string, page: number, limit: number) {
+export const listByAssignment = async (assignmentId: string, page: number, limit: number) => {
 	const offset = (page - 1) * limit;
 
 	const [rows, countResult] = await Promise.all([
@@ -173,9 +173,9 @@ export async function listByAssignment(assignmentId: string, page: number, limit
 		submissions,
 		total: parseInt(countResult?.count ?? "0", 10)
 	};
-}
+};
 
-export async function getDetail(submissionId: string) {
+export const getDetail = async (submissionId: string) => {
 	const row = await queryOne<SubmissionRow>(
 		`SELECT s.*, u.username, u.display_name
      FROM submissions s
@@ -239,9 +239,9 @@ export async function getDetail(submissionId: string) {
 		})),
 		runs: runsWithArtifacts
 	};
-}
+};
 
-export async function canUserViewAssignmentSubmissions(userId: string, userRole: string, assignmentId: string) {
+export const canUserViewAssignmentSubmissions = async (userId: string, userRole: string, assignmentId: string) => {
 	if (userRole === "admin") {
 		return true;
 	}
@@ -271,18 +271,18 @@ export async function canUserViewAssignmentSubmissions(userId: string, userRole:
 	}
 
 	return true;
-}
+};
 
-export async function canUserViewSubmission(userId: string, userRole: string, submissionId: string) {
+export const canUserViewSubmission = async (userId: string, userRole: string, submissionId: string) => {
 	if (userRole === "admin") {
 		return true;
 	}
 
 	const classRole = await getClassMemberRoleBySubmission(userId, submissionId);
 	return classRole !== null;
-}
+};
 
-export async function canUserViewArtifact(userId: string, userRole: string, artifactId: string) {
+export const canUserViewArtifact = async (userId: string, userRole: string, artifactId: string) => {
 	if (userRole === "admin") {
 		return true;
 	}
@@ -298,9 +298,9 @@ export async function canUserViewArtifact(userId: string, userRole: string, arti
 	);
 
 	return row !== null;
-}
+};
 
-export async function canUserRejudgeSubmission(userId: string, userRole: string, submissionId: string, submissionOwnerId: string) {
+export const canUserRejudgeSubmission = async (userId: string, userRole: string, submissionId: string, submissionOwnerId: string) => {
 	if (userRole === "admin") {
 		return true;
 	}
@@ -311,9 +311,9 @@ export async function canUserRejudgeSubmission(userId: string, userRole: string,
 	}
 
 	return submissionOwnerId === userId;
-}
+};
 
-export async function listByUser(userId: string, assignmentId: string) {
+export const listByUser = async (userId: string, assignmentId: string) => {
 	const rows = await queryMany<SubmissionRow>(
 		`SELECT s.*, u.username, u.display_name
      FROM submissions s
@@ -336,9 +336,9 @@ export async function listByUser(userId: string, assignmentId: string) {
 		fileCount: row.file_count,
 		createdAt: row.created_at.toISOString()
 	}));
-}
+};
 
-export async function getFileForDownload(fileId: string) {
+export const getFileForDownload = async (fileId: string) => {
 	const row = await queryOne<DownloadFileRow>(
 		`SELECT id, submission_id, path, minio_key
      FROM submission_files
@@ -354,9 +354,9 @@ export async function getFileForDownload(fileId: string) {
 		path: row.path,
 		minioKey: row.minio_key
 	};
-}
+};
 
-export async function rejudgeSubmission(submissionId: string) {
+export const rejudgeSubmission = async (submissionId: string) => {
 	return transaction(async client => {
 		const submission = await client.query<{ id: string }>("SELECT id FROM submissions WHERE id = $1", [submissionId]);
 
@@ -396,4 +396,4 @@ export async function rejudgeSubmission(submissionId: string) {
 
 		return { ok: true as const, runId };
 	});
-}
+};

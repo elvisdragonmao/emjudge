@@ -1,7 +1,7 @@
 import { SUPPORTED_LANGUAGES, normalizeLanguageTag } from "@/i18n/config";
 import { useTranslation } from "react-i18next";
 
-export function LanguageSwitcher() {
+export const LanguageSwitcher = () => {
 	const { i18n, t } = useTranslation();
 	const value = normalizeLanguageTag(i18n.resolvedLanguage ?? i18n.language);
 
@@ -24,4 +24,4 @@ export function LanguageSwitcher() {
 			</select>
 		</label>
 	);
-}
+};

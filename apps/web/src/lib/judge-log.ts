@@ -43,7 +43,7 @@ const STAGE_DEFINITIONS = [
 	}
 ] as const;
 
-export function sanitizeJudgeLog(log: string) {
+export const sanitizeJudgeLog = (log: string) => {
 	return log
 		.replace(OSC_PATTERN, "")
 		.replace(ANSI_PATTERN, "")
@@ -52,9 +52,9 @@ export function sanitizeJudgeLog(log: string) {
 		.replace(CONTROL_PATTERN, "")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
-}
+};
 
-export function getJudgeStages(log: string | null, status: string): JudgeStage[] {
+export const getJudgeStages = (log: string | null, status: string): JudgeStage[] => {
 	const sanitized = log ? sanitizeJudgeLog(log) : "";
 	let reachedStageIndex = -1;
 
@@ -92,4 +92,4 @@ export function getJudgeStages(log: string | null, status: string): JudgeStage[]
 
 		return { ...stage, label, state: "pending" as const };
 	});
-}
+};

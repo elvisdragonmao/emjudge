@@ -6,7 +6,7 @@ type PageTitleProps = {
 	title?: string;
 };
 
-export function PageTitle({ title }: PageTitleProps) {
+export const PageTitle = ({ title }: PageTitleProps) => {
 	const content = title ? `${title} | ${APP_NAME}` : APP_NAME;
 
 	return (
@@ -14,4 +14,4 @@ export function PageTitle({ title }: PageTitleProps) {
 			<title>{content}</title>
 		</Helmet>
 	);
-}
+};

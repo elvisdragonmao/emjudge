@@ -14,7 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 
-function ArtifactImage({ artifactId, alt, className }: { artifactId: string; alt: string; className?: string }) {
+const ArtifactImage = ({ artifactId, alt, className }: { artifactId: string; alt: string; className?: string }) => {
 	const { t } = useTranslation();
 	const [imageUrl, setImageUrl] = useState<string | null>(null);
 	const [error, setError] = useState(false);
@@ -45,9 +45,9 @@ function ArtifactImage({ artifactId, alt, className }: { artifactId: string; alt
 	}
 
 	return <img src={imageUrl} alt={alt} className={className} />;
-}
+};
 
-export function SubmissionDetailPage() {
+export const SubmissionDetailPage = () => {
 	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
 	const { user } = useAuth();
@@ -315,4 +315,4 @@ export function SubmissionDetailPage() {
 			))}
 		</div>
 	);
-}
+};

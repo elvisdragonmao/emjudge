@@ -3,7 +3,7 @@ type SubmissionFile = {
 	minio_key: string;
 };
 
-export function stripSharedSubmissionRoot<T extends SubmissionFile>(files: T[]) {
+export const stripSharedSubmissionRoot = <T extends SubmissionFile>(files: T[]) => {
 	if (files.length === 0) {
 		return files;
 	}
@@ -25,4 +25,4 @@ export function stripSharedSubmissionRoot<T extends SubmissionFile>(files: T[]) 
 		...file,
 		path: firstSegments[index]!.slice(1).join("/")
 	}));
-}
+};

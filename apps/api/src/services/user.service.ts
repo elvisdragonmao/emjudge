@@ -19,7 +19,7 @@ interface UserClassRow {
 	role: "teacher" | "student";
 }
 
-function toSummary(row: UserRow, classes: UserClassRow[] = []) {
+const toSummary = (row: UserRow, classes: UserClassRow[] = []) => {
 	return {
 		id: row.id,
 		username: row.username,
@@ -28,17 +28,17 @@ function toSummary(row: UserRow, classes: UserClassRow[] = []) {
 		classes: classes.map(c => ({ id: c.id, name: c.name, role: c.role })),
 		createdAt: row.created_at.toISOString()
 	};
-}
+};
 
-export async function findByUsername(username: string) {
+export const findByUsername = async (username: string) => {
 	return queryOne<UserRow>("SELECT * FROM users WHERE username = $1 AND is_active = true", [username]);
-}
+};
 
-export async function findById(id: string) {
+export const findById = async (id: string) => {
 	return queryOne<UserRow>("SELECT * FROM users WHERE id = $1 AND is_active = true", [id]);
-}
+};
 
-export async function listUsers(page: number, limit: number) {
+export const listUsers = async (page: number, limit: number) => {
 	const offset = (page - 1) * limit;
 	const [rows, countResult] = await Promise.all([
 		queryMany<UserRow>("SELECT * FROM users WHERE is_active = true ORDER BY created_at DESC LIMIT $1 OFFSET $2", [limit, offset]),
@@ -74,9 +74,9 @@ export async function listUsers(page: number, limit: number) {
 		users: rows.map(row => toSummary(row, classMap.get(row.id) ?? [])),
 		total: parseInt(countResult?.count ?? "0", 10)
 	};
-}
+};
 
-export async function createUser(data: CreateUserRequest) {
+export const createUser = async (data: CreateUserRequest) => {
 	const passwordHash = await bcrypt.hash(data.password, 12);
 	const row = await queryOne<UserRow>(
 		`INSERT INTO users (username, display_name, password_hash, role)
@@ -87,9 +87,9 @@ export async function createUser(data: CreateUserRequest) {
 		throw new Error("Failed to create user");
 	}
 	return toSummary(row);
-}
+};
 
-export async function registerStudent(data: RegisterRequest) {
+export const registerStudent = async (data: RegisterRequest) => {
 	const passwordHash = await bcrypt.hash(data.password, 12);
 	const row = await queryOne<UserRow>(
 		`INSERT INTO users (username, display_name, password_hash, role)
@@ -100,9 +100,9 @@ export async function registerStudent(data: RegisterRequest) {
 		throw new Error("Failed to register user");
 	}
 	return toSummary(row);
-}
+};
 
-export async function bulkImport(users: BulkImportRow[], importedBy: string) {
+export const bulkImport = async (users: BulkImportRow[], importedBy: string) => {
 	return transaction(async client => {
 		let successCount = 0;
 		let errorCount = 0;
@@ -133,13 +133,13 @@ export async function bulkImport(users: BulkImportRow[], importedBy: string) {
 
 		return { totalCount: users.length, successCount, errorCount, errors };
 	});
-}
+};
 
-export async function updateProfile(userId: string, displayName: string) {
+export const updateProfile = async (userId: string, displayName: string) => {
 	await query("UPDATE users SET display_name = $1 WHERE id = $2", [displayName, userId]);
-}
+};
 
-export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<boolean> => {
 	const user = await findById(userId);
 	if (!user) return false;
 
@@ -149,15 +149,15 @@ export async function changePassword(userId: string, currentPassword: string, ne
 	const newHash = await bcrypt.hash(newPassword, 12);
 	await query("UPDATE users SET password_hash = $1 WHERE id = $2", [newHash, userId]);
 	return true;
-}
+};
 
-export async function resetPassword(userId: string, newPassword: string, resetBy: string) {
+export const resetPassword = async (userId: string, newPassword: string, resetBy: string) => {
 	const newHash = await bcrypt.hash(newPassword, 12);
 	await query("UPDATE users SET password_hash = $1 WHERE id = $2", [newHash, userId]);
 	await query("INSERT INTO password_reset_logs (user_id, reset_by) VALUES ($1, $2)", [userId, resetBy]);
-}
+};
 
-export async function verifyPassword(username: string, password: string) {
+export const verifyPassword = async (username: string, password: string) => {
 	const user = await findByUsername(username);
 	if (!user) return null;
 
@@ -165,4 +165,4 @@ export async function verifyPassword(username: string, password: string) {
 	if (!valid) return null;
 
 	return toSummary(user);
-}
+};

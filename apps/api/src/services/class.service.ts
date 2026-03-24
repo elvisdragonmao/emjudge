@@ -19,7 +19,7 @@ interface ClassMemberRoleRow {
 	role: "teacher" | "student";
 }
 
-function toSummary(row: ClassRow) {
+const toSummary = (row: ClassRow) => {
 	return {
 		id: row.id,
 		name: row.name,
@@ -28,20 +28,20 @@ function toSummary(row: ClassRow) {
 		assignmentCount: parseInt(row.assignment_count ?? "0", 10),
 		createdAt: row.created_at.toISOString()
 	};
-}
+};
 
-function toJoinCodeInfo(row: ClassRow, includeCode: boolean) {
+const toJoinCodeInfo = (row: ClassRow, includeCode: boolean) => {
 	return {
 		enabled: row.join_code_enabled,
 		code: includeCode ? row.join_code : null
 	};
-}
+};
 
-function generateJoinCode() {
+const generateJoinCode = () => {
 	return crypto.randomBytes(4).toString("hex").toUpperCase();
-}
+};
 
-async function generateUniqueJoinCode() {
+const generateUniqueJoinCode = async () => {
 	for (let attempt = 0; attempt < 10; attempt++) {
 		const code = generateJoinCode();
 		const existing = await queryOne<{ id: string }>("SELECT id FROM classes WHERE join_code = $1", [code]);
@@ -51,9 +51,9 @@ async function generateUniqueJoinCode() {
 	}
 
 	throw new Error("Failed to generate unique join code");
-}
+};
 
-export async function listClasses() {
+export const listClasses = async () => {
 	const rows = await queryMany<ClassRow>(
 		`SELECT c.*,
        (SELECT COUNT(*) FROM class_members WHERE class_id = c.id) as member_count,
@@ -63,9 +63,9 @@ export async function listClasses() {
      ORDER BY c.created_at DESC`
 	);
 	return rows.map(toSummary);
-}
+};
 
-export async function listClassesForUser(userId: string) {
+export const listClassesForUser = async (userId: string) => {
 	const rows = await queryMany<ClassRow>(
 		`SELECT c.*,
        (SELECT COUNT(*) FROM class_members WHERE class_id = c.id) as member_count,
@@ -77,9 +77,9 @@ export async function listClassesForUser(userId: string) {
 		[userId]
 	);
 	return rows.map(toSummary);
-}
+};
 
-export async function getClassById(id: string) {
+export const getClassById = async (id: string) => {
 	return queryOne<ClassRow>(
 		`SELECT c.*,
        (SELECT COUNT(*) FROM class_members WHERE class_id = c.id) as member_count,
@@ -88,9 +88,9 @@ export async function getClassById(id: string) {
      WHERE c.id = $1`,
 		[id]
 	);
-}
+};
 
-export async function getClassDetail(id: string, includeJoinCode = false) {
+export const getClassDetail = async (id: string, includeJoinCode = false) => {
 	const cls = await getClassById(id);
 	if (!cls) return null;
 
@@ -120,9 +120,9 @@ export async function getClassDetail(id: string, includeJoinCode = false) {
 			createdAt: m.created_at.toISOString()
 		}))
 	};
-}
+};
 
-export async function createClass(name: string, description: string, createdBy: string) {
+export const createClass = async (name: string, description: string, createdBy: string) => {
 	const joinCode = await generateUniqueJoinCode();
 
 	return transaction(async client => {
@@ -146,9 +146,9 @@ export async function createClass(name: string, description: string, createdBy: 
 
 		return toSummary(row);
 	});
-}
+};
 
-export async function updateClass(id: string, data: { name?: string; description?: string; joinCodeEnabled?: boolean }) {
+export const updateClass = async (id: string, data: { name?: string; description?: string; joinCodeEnabled?: boolean }) => {
 	const sets: string[] = [];
 	const params: unknown[] = [];
 	let idx = 1;
@@ -170,15 +170,15 @@ export async function updateClass(id: string, data: { name?: string; description
 
 	params.push(id);
 	await query(`UPDATE classes SET ${sets.join(", ")} WHERE id = $${idx}`, params);
-}
+};
 
-export async function addMembers(classId: string, userIds: string[]) {
+export const addMembers = async (classId: string, userIds: string[]) => {
 	for (const userId of userIds) {
 		await query(`INSERT INTO class_members (class_id, user_id, role) VALUES ($1, $2, 'student') ON CONFLICT DO NOTHING`, [classId, userId]);
 	}
-}
+};
 
-export async function listAvailableMembers(classId: string) {
+export const listAvailableMembers = async (classId: string) => {
 	const users = await queryMany<{
 		id: string;
 		username: string;
@@ -206,22 +206,22 @@ export async function listAvailableMembers(classId: string) {
 		classes: [],
 		createdAt: user.created_at.toISOString()
 	}));
-}
+};
 
-export async function getJoinCodeSettings(classId: string) {
+export const getJoinCodeSettings = async (classId: string) => {
 	const row = await queryOne<ClassRow>("SELECT * FROM classes WHERE id = $1", [classId]);
 	if (!row) return null;
 	return toJoinCodeInfo(row, true);
-}
+};
 
-export async function reissueJoinCode(classId: string) {
+export const reissueJoinCode = async (classId: string) => {
 	const joinCode = await generateUniqueJoinCode();
 	const row = await queryOne<ClassRow>("UPDATE classes SET join_code = $1 WHERE id = $2 RETURNING *", [joinCode, classId]);
 	if (!row) return null;
 	return toJoinCodeInfo(row, true);
-}
+};
 
-export async function joinClassByCode(code: string, userId: string) {
+export const joinClassByCode = async (code: string, userId: string) => {
 	return transaction(async client => {
 		const normalizedCode = code.trim().toUpperCase();
 		const classRow = await client.query<ClassRow>("SELECT * FROM classes WHERE join_code = $1 AND is_archived = false", [normalizedCode]);
@@ -243,44 +243,44 @@ export async function joinClassByCode(code: string, userId: string) {
 		await client.query("INSERT INTO class_members (class_id, user_id, role) VALUES ($1, $2, 'student')", [cls.id, userId]);
 		return { type: "joined" as const, classId: cls.id };
 	});
-}
+};
 
-export async function removeMember(classId: string, userId: string) {
+export const removeMember = async (classId: string, userId: string) => {
 	await query("DELETE FROM class_members WHERE class_id = $1 AND user_id = $2", [classId, userId]);
-}
+};
 
-export async function isUserInClass(userId: string, classId: string) {
+export const isUserInClass = async (userId: string, classId: string) => {
 	const row = await queryOne("SELECT 1 FROM class_members WHERE class_id = $1 AND user_id = $2", [classId, userId]);
 	return row !== null;
-}
+};
 
-export async function getClassMemberRole(userId: string, classId: string) {
+export const getClassMemberRole = async (userId: string, classId: string) => {
 	const row = await queryOne<ClassMemberRoleRow>("SELECT role FROM class_members WHERE class_id = $1 AND user_id = $2", [classId, userId]);
 	return row?.role ?? null;
-}
+};
 
-export async function canManageClass(userId: string, userRole: string, classId: string) {
+export const canManageClass = async (userId: string, userRole: string, classId: string) => {
 	if (userRole === "admin") {
 		return true;
 	}
 
 	const classRole = await getClassMemberRole(userId, classId);
 	return classRole === "teacher";
-}
+};
 
-export async function canViewClass(userId: string, userRole: string, classId: string) {
+export const canViewClass = async (userId: string, userRole: string, classId: string) => {
 	if (userRole === "admin") {
 		return true;
 	}
 
 	return isUserInClass(userId, classId);
-}
+};
 
-export async function updateMemberRole(classId: string, userId: string, role: "teacher" | "student") {
+export const updateMemberRole = async (classId: string, userId: string, role: "teacher" | "student") => {
 	await query("UPDATE class_members SET role = $1 WHERE class_id = $2 AND user_id = $3", [role, classId, userId]);
-}
+};
 
-export async function getClassScoreHistory(classId: string) {
+export const getClassScoreHistory = async (classId: string) => {
 	const rows = await queryMany<{
 		user_id: string;
 		display_name: string;
@@ -333,4 +333,4 @@ export async function getClassScoreHistory(classId: string) {
 	}
 
 	return points;
-}
+};
