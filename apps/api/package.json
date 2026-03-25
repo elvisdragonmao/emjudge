@@ -18,7 +18,7 @@
 		"@fastify/swagger-ui": "^5.2.5",
 		"@judge/shared": "workspace:*",
 		"bcrypt": "^6.0.0",
-		"fastify": "^5.3.3",
+		"fastify": "^5.8.3",
 		"minio": "^8.0.5",
 		"pg": "^8.16.0",
 		"zod": "^3.25.67",
