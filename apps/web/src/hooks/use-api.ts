@@ -4,10 +4,13 @@ import { isSubmissionActive } from "@/lib/submission-status";
 import type {
 	AssignmentDetail,
 	AssignmentSummary,
+	BulkImportRequest,
 	ClassCumulativeScorePoint,
 	ClassDetail,
 	ClassJoinCodeInfo,
 	ClassSummary,
+	CreateAssignmentRequest,
+	CreateUserRequest,
 	JoinClassByCodeRequest,
 	LoginRequest,
 	LoginResponse,
@@ -17,6 +20,7 @@ import type {
 	ReorderAssignmentsRequest,
 	SubmissionDetail,
 	SubmissionListResponse,
+	UpdateAssignmentRequest,
 	UpdateClassJoinCodeSettingsRequest,
 	UpdateClassMemberRoleRequest,
 	UpdateRegistrationSettingsRequest,
@@ -215,7 +219,7 @@ export const useAssignmentDetail = (id: string) => {
 export const useCreateAssignment = () => {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (data: unknown) => api.post("/assignments", data),
+		mutationFn: (data: CreateAssignmentRequest) => api.post("/assignments", data),
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["assignments"] })
 	});
 };
@@ -223,7 +227,7 @@ export const useCreateAssignment = () => {
 export const useUpdateAssignment = (id: string) => {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (data: unknown) => api.patch(`/assignments/${id}`, data),
+		mutationFn: (data: UpdateAssignmentRequest) => api.patch(`/assignments/${id}`, data),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: queryKeys.assignmentDetail(id) });
 			qc.invalidateQueries({ queryKey: ["assignments"] });
@@ -308,7 +312,7 @@ export const useUpdateRegistrationSettings = () => {
 export const useCreateUser = () => {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (data: unknown) => api.post<UserSummary>("/admin/users", data),
+		mutationFn: (data: CreateUserRequest) => api.post<UserSummary>("/admin/users", data),
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] })
 	});
 };
@@ -316,7 +320,7 @@ export const useCreateUser = () => {
 export const useBulkImport = () => {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (data: { users: unknown[] }) => api.post<BulkImportResult>("/admin/users/bulk-import", data),
+		mutationFn: (data: BulkImportRequest) => api.post<BulkImportResult>("/admin/users/bulk-import", data),
 		onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] })
 	});
 };

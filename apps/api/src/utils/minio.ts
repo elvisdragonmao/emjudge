@@ -61,3 +61,7 @@ export const downloadBuffer = async (bucket: string, key: string): Promise<Buffe
 	}
 	return Buffer.concat(chunks);
 };
+
+export const removeObject = async (bucket: string, key: string) => {
+	await minioClient.removeObject(bucket, key);
+};

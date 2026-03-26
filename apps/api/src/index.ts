@@ -1,8 +1,10 @@
+import cookie from "@fastify/cookie";
 import cors from "@fastify/cors";
 import jwt from "@fastify/jwt";
 import multipart from "@fastify/multipart";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import { MAX_FILES_PER_SUBMISSION, MAX_UPLOAD_SIZE_MB } from "@judge/shared";
 import Fastify from "fastify";
 import { ZodError } from "zod";
 import { config } from "./config.js";
@@ -19,11 +21,18 @@ const main = async () => {
 
 	// ─── Plugins ─────────────────────────────────────────
 	await app.register(cors, { origin: config.CORS_ORIGIN, credentials: true });
-	await app.register(jwt, { secret: config.JWT_SECRET });
+	await app.register(cookie);
+	await app.register(jwt, {
+		secret: config.JWT_SECRET,
+		cookie: {
+			cookieName: "access_token",
+			signed: false
+		}
+	});
 	await app.register(multipart, {
 		limits: {
-			fileSize: 50 * 1024 * 1024, // 50MB
-			files: 200
+			fileSize: MAX_UPLOAD_SIZE_MB * 1024 * 1024,
+			files: MAX_FILES_PER_SUBMISSION
 		}
 	});
 	await app.register(swagger, {

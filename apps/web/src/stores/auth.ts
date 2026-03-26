@@ -14,7 +14,7 @@ interface AuthState {
 }
 
 let state: AuthState = {
-	token: localStorage.getItem("token"),
+	token: null,
 	user: (() => {
 		try {
 			const raw = localStorage.getItem("user");
@@ -43,14 +43,12 @@ const getSnapshot = () => {
 };
 
 export const setAuth = (token: string, user: AuthUser) => {
-	localStorage.setItem("token", token);
 	localStorage.setItem("user", JSON.stringify(user));
 	state = { token, user };
 	emitChange();
 };
 
 export const clearAuth = () => {
-	localStorage.removeItem("token");
 	localStorage.removeItem("user");
 	state = { token: null, user: null };
 	emitChange();

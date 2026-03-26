@@ -55,6 +55,12 @@ export const AssignmentCreatePage = () => {
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		setSubmitMessage("");
+
+		if (!classId) {
+			setSubmitMessage(t("pages.assignmentCreate.createFailed"));
+			return;
+		}
+
 		createMutation.mutate(
 			{
 				classId,

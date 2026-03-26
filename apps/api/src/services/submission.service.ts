@@ -1,13 +1,14 @@
-import { MINIO_BUCKETS } from "@judge/shared";
+import { MINIO_BUCKETS, type SubmissionStatus } from "@judge/shared";
+import crypto from "node:crypto";
 import { queryMany, queryOne, transaction } from "../db/pool.js";
-import { getPresignedUrl, uploadBuffer } from "../utils/minio.js";
+import { getPresignedUrl, removeObject, uploadBuffer } from "../utils/minio.js";
 
 interface SubmissionRow {
 	id: string;
 	assignment_id: string;
 	class_id?: string;
 	user_id: string;
-	status: string;
+	status: SubmissionStatus;
 	score: number | null;
 	max_score: number | null;
 	file_count: number;
@@ -34,7 +35,7 @@ interface DownloadFileRow {
 interface RunRow {
 	id: string;
 	submission_id: string;
-	status: string;
+	status: SubmissionStatus;
 	score: number | null;
 	max_score: number | null;
 	test_results: unknown;
@@ -43,6 +44,65 @@ interface RunRow {
 	finished_at: Date | null;
 	created_at: Date;
 }
+
+type SubmissionCreateErrorCode = "assignment_not_found" | "assignment_not_published" | "assignment_closed" | "multiple_submissions_disabled";
+
+export class SubmissionCreateError extends Error {
+	constructor(public readonly code: SubmissionCreateErrorCode) {
+		super(code);
+		this.name = "SubmissionCreateError";
+	}
+}
+
+interface AssignmentSubmissionRulesRow {
+	status: "draft" | "published";
+	published_at: Date | null;
+	due_date: Date | null;
+	allow_multiple_submissions: boolean;
+}
+
+const getAssignmentSubmissionRules = async (assignmentId: string) => {
+	return queryOne<AssignmentSubmissionRulesRow>(
+		`SELECT status, published_at, due_date, allow_multiple_submissions
+       FROM assignments
+       WHERE id = $1`,
+		[assignmentId]
+	);
+};
+
+const enforceSubmissionRules = async (assignmentId: string, userId: string) => {
+	const assignment = await getAssignmentSubmissionRules(assignmentId);
+	if (!assignment) {
+		throw new SubmissionCreateError("assignment_not_found");
+	}
+
+	if (assignment.status !== "published") {
+		throw new SubmissionCreateError("assignment_not_published");
+	}
+
+	if (assignment.published_at && assignment.published_at.getTime() > Date.now()) {
+		throw new SubmissionCreateError("assignment_not_published");
+	}
+
+	if (assignment.due_date && assignment.due_date.getTime() < Date.now()) {
+		throw new SubmissionCreateError("assignment_closed");
+	}
+
+	if (!assignment.allow_multiple_submissions) {
+		const existingSubmission = await queryOne<{ id: string }>("SELECT id FROM submissions WHERE assignment_id = $1 AND user_id = $2 LIMIT 1", [assignmentId, userId]);
+		if (existingSubmission) {
+			throw new SubmissionCreateError("multiple_submissions_disabled");
+		}
+	}
+};
+
+const cleanupUploadedFiles = async (uploadedKeys: string[]) => {
+	if (uploadedKeys.length === 0) {
+		return;
+	}
+
+	await Promise.allSettled(uploadedKeys.map(key => removeObject(MINIO_BUCKETS.SUBMISSIONS, key)));
+};
 
 interface ArtifactRow {
 	id: string;
@@ -79,46 +139,99 @@ const getClassMemberRoleBySubmission = async (userId: string, submissionId: stri
 };
 
 export const createSubmission = async (assignmentId: string, userId: string, files: Array<{ path: string; buffer: Buffer }>) => {
-	return transaction(async client => {
-		const result = await client.query(
-			`INSERT INTO submissions (assignment_id, user_id, file_count, status)
-       VALUES ($1, $2, $3, 'pending') RETURNING id`,
-			[assignmentId, userId, files.length]
-		);
-		const submissionId = result.rows[0]!.id as string;
+	await enforceSubmissionRules(assignmentId, userId);
 
-		// Upload files to MinIO and record in DB
-		for (const file of files) {
-			const minioKey = `${submissionId}/${file.path}`;
-			await uploadBuffer(MINIO_BUCKETS.SUBMISSIONS, minioKey, file.buffer);
+	const submissionId = crypto.randomUUID();
+	const uploadEntries = files.map(file => ({
+		path: file.path,
+		size: file.buffer.length,
+		minioKey: `${submissionId}/${file.path}`,
+		buffer: file.buffer
+	}));
+	const uploadedKeys: string[] = [];
+
+	try {
+		for (const entry of uploadEntries) {
+			await uploadBuffer(MINIO_BUCKETS.SUBMISSIONS, entry.minioKey, entry.buffer);
+			uploadedKeys.push(entry.minioKey);
+		}
+	} catch (error) {
+		await cleanupUploadedFiles(uploadedKeys);
+		throw error;
+	}
+
+	return transaction(async client => {
+		try {
+			await client.query(
+				`INSERT INTO submissions (id, assignment_id, user_id, file_count, status)
+       VALUES ($1, $2, $3, $4, 'pending')`,
+				[submissionId, assignmentId, userId, uploadEntries.length]
+			);
+
+			for (const entry of uploadEntries) {
+				await client.query(
+					`INSERT INTO submission_files (submission_id, path, size, minio_key)
+          VALUES ($1, $2, $3, $4)`,
+					[submissionId, entry.path, entry.size, entry.minioKey]
+				);
+			}
+
+			const runResult = await client.query(
+				`INSERT INTO submission_runs (submission_id, status)
+       VALUES ($1, 'pending') RETURNING id`,
+				[submissionId]
+			);
+			const runId = runResult.rows[0]!.id as string;
 
 			await client.query(
-				`INSERT INTO submission_files (submission_id, path, size, minio_key)
-         VALUES ($1, $2, $3, $4)`,
-				[submissionId, file.path, file.buffer.length, minioKey]
-			);
-		}
-
-		// Create initial run
-		const runResult = await client.query(
-			`INSERT INTO submission_runs (submission_id, status)
-       VALUES ($1, 'pending') RETURNING id`,
-			[submissionId]
-		);
-		const runId = runResult.rows[0]!.id as string;
-
-		// Create judge job
-		await client.query(
-			`INSERT INTO judge_jobs (submission_id, run_id, status)
+				`INSERT INTO judge_jobs (submission_id, run_id, status)
        VALUES ($1, $2, 'pending')`,
-			[submissionId, runId]
-		);
+				[submissionId, runId]
+			);
 
-		// Update submission status
-		await client.query("UPDATE submissions SET status = 'queued' WHERE id = $1", [submissionId]);
+			await client.query("UPDATE submissions SET status = 'queued' WHERE id = $1", [submissionId]);
 
-		return submissionId;
+			return submissionId;
+		} catch (error) {
+			await cleanupUploadedFiles(uploadedKeys);
+			throw error;
+		}
 	});
+};
+
+export const canUserSubmitAssignment = async (userId: string, userRole: string, assignmentId: string) => {
+	if (userRole !== "student") {
+		return false;
+	}
+
+	const classRole = await getClassMemberRoleByAssignment(userId, assignmentId);
+	if (classRole !== "student") {
+		return false;
+	}
+
+	const assignment = await getAssignmentSubmissionRules(assignmentId);
+	if (!assignment) {
+		return false;
+	}
+
+	if (assignment.status !== "published") {
+		return false;
+	}
+
+	if (assignment.published_at && assignment.published_at.getTime() > Date.now()) {
+		return false;
+	}
+
+	if (assignment.due_date && assignment.due_date.getTime() < Date.now()) {
+		return false;
+	}
+
+	if (!assignment.allow_multiple_submissions) {
+		const existingSubmission = await queryOne<{ id: string }>("SELECT id FROM submissions WHERE assignment_id = $1 AND user_id = $2 LIMIT 1", [assignmentId, userId]);
+		return !existingSubmission;
+	}
+
+	return true;
 };
 
 export const listByAssignment = async (assignmentId: string, page: number, limit: number) => {
@@ -159,7 +272,7 @@ export const listByAssignment = async (assignmentId: string, page: number, limit
 				userId: row.user_id,
 				username: row.username ?? "",
 				displayName: row.display_name ?? "",
-				status: row.status as "pending" | "queued" | "running" | "completed" | "failed" | "error",
+				status: row.status,
 				score: row.score,
 				maxScore: row.max_score,
 				screenshotUrl,
@@ -196,7 +309,7 @@ export const getDetail = async (submissionId: string) => {
 			return {
 				id: run.id,
 				submissionId: run.submission_id,
-				status: run.status as "pending" | "queued" | "running" | "completed" | "failed" | "error",
+				status: run.status,
 				score: run.score,
 				maxScore: run.max_score,
 				testResults: run.test_results as Array<{
@@ -225,7 +338,7 @@ export const getDetail = async (submissionId: string) => {
 		userId: row.user_id,
 		username: row.username ?? "",
 		displayName: row.display_name ?? "",
-		status: row.status as "pending" | "queued" | "running" | "completed" | "failed" | "error",
+		status: row.status,
 		score: row.score,
 		maxScore: row.max_score,
 		screenshotUrl: null as string | null,
@@ -329,7 +442,7 @@ export const listByUser = async (userId: string, assignmentId: string) => {
 		userId: row.user_id,
 		username: row.username ?? "",
 		displayName: row.display_name ?? "",
-		status: row.status as "pending" | "queued" | "running" | "completed" | "failed" | "error",
+		status: row.status,
 		score: row.score,
 		maxScore: row.max_score,
 		screenshotUrl: null as string | null,

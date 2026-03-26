@@ -1,6 +1,7 @@
 import { IdParam, MINIO_BUCKETS, normalizeSubmissionPath, PaginationQuery, shouldIgnoreUploadPath, SubmissionDetail, SubmissionListResponse } from "@judge/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { queryOne } from "../db/pool.js";
 import { authSecurity, createRouteSchema, toJsonSchema, withErrorResponses } from "../lib/openapi.js";
 import { authenticate } from "../middleware/auth.js";
 import * as submissionService from "../services/submission.service.js";
@@ -41,13 +42,13 @@ export const submissionRoutes = async (app: FastifyInstance) => {
 					{
 						201: toJsonSchema(SubmissionCreatedResponse, "SubmissionCreatedResponse")
 					},
-					[400, 401]
+					[400, 401, 403, 404, 409]
 				)
 			})
 		},
 		async (request, reply) => {
 			const { id: assignmentId } = IdParam.parse(request.params);
-			const canSubmit = await submissionService.canUserViewAssignmentSubmissions(request.userId, request.userRole, assignmentId);
+			const canSubmit = await submissionService.canUserSubmitAssignment(request.userId, request.userRole, assignmentId);
 			if (!canSubmit) {
 				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
@@ -80,7 +81,30 @@ export const submissionRoutes = async (app: FastifyInstance) => {
 				return reply.status(400).send({ error: "請上傳至少一個檔案", statusCode: 400 });
 			}
 
-			const submissionId = await submissionService.createSubmission(assignmentId, request.userId, files);
+			let submissionId: string;
+			try {
+				submissionId = await submissionService.createSubmission(assignmentId, request.userId, files);
+			} catch (error) {
+				if (error instanceof submissionService.SubmissionCreateError) {
+					if (error.code === "assignment_not_found") {
+						return reply.status(404).send({ error: "作業不存在", statusCode: 404 });
+					}
+
+					if (error.code === "assignment_not_published") {
+						return reply.status(403).send({ error: "作業尚未開放提交", statusCode: 403 });
+					}
+
+					if (error.code === "assignment_closed") {
+						return reply.status(403).send({ error: "作業已截止", statusCode: 403 });
+					}
+
+					if (error.code === "multiple_submissions_disabled") {
+						return reply.status(409).send({ error: "此作業不允許多次提交", statusCode: 409 });
+					}
+				}
+
+				throw error;
+			}
 
 			return reply.status(201).send({ id: submissionId, message: "作業已提交" });
 		}
@@ -253,7 +277,6 @@ export const submissionRoutes = async (app: FastifyInstance) => {
 		},
 		async (request, reply) => {
 			const { id } = IdParam.parse(request.params);
-			const { queryOne } = await import("../db/pool.js");
 			const artifact = await queryOne<{
 				minio_key: string;
 				submission_id: string;

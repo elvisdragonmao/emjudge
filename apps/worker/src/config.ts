@@ -15,6 +15,7 @@ const EnvSchema = z.object({
 
 	WORKER_ID: z.string().default(`worker-${process.pid}`),
 	POLL_INTERVAL_MS: z.coerce.number().default(3000),
+	STALE_JOB_TIMEOUT_MS: z.coerce.number().default(300_000),
 	CACHE_ROOT_DIR: z
 		.string()
 		.default(".cache")
