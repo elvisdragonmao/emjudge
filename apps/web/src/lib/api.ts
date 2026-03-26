@@ -13,7 +13,7 @@ class ApiError extends Error {
 }
 
 const getToken = (): string | null => {
-	return localStorage.getItem("token");
+	return null;
 };
 
 const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
@@ -34,6 +34,7 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
 
 	const res = await fetch(`${API_BASE}${path}`, {
 		...options,
+		credentials: "include",
 		headers
 	});
 

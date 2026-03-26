@@ -18,43 +18,6 @@ interface AssignmentRow {
 	class_name?: string;
 }
 
-let sortOrderColumnEnsured = false;
-let publicationColumnsEnsured = false;
-
-const ensureSortOrderColumn = async () => {
-	if (sortOrderColumnEnsured) {
-		return;
-	}
-
-	await query("ALTER TABLE assignments ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0");
-	await query(
-		`WITH ordered_assignments AS (
-		   SELECT
-		     id,
-		     ROW_NUMBER() OVER (PARTITION BY class_id ORDER BY created_at DESC, id DESC) AS next_sort_order
-		   FROM assignments
-		 )
-		 UPDATE assignments a
-		 SET sort_order = ordered_assignments.next_sort_order
-		 FROM ordered_assignments
-		 WHERE a.id = ordered_assignments.id
-		   AND a.sort_order = 0`
-	);
-
-	sortOrderColumnEnsured = true;
-};
-
-const ensurePublicationColumns = async () => {
-	if (publicationColumnsEnsured) {
-		return;
-	}
-
-	await query("ALTER TABLE assignments ADD COLUMN IF NOT EXISTS status assignment_status NOT NULL DEFAULT 'published'");
-	await query("ALTER TABLE assignments ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ");
-
-	publicationColumnsEnsured = true;
-};
-
 interface SpecRow {
 	id: string;
 	assignment_id: string;
@@ -82,9 +45,6 @@ const toSummary = (row: AssignmentRow) => {
 };
 
 export const listByClass = async (classId: string, includeUnpublished = false) => {
-	await ensureSortOrderColumn();
-	await ensurePublicationColumns();
-
 	const rows = await queryMany<AssignmentRow>(
 		`SELECT a.*,
        (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count
@@ -98,8 +58,6 @@ export const listByClass = async (classId: string, includeUnpublished = false) =
 };
 
 export const getById = async (id: string) => {
-	await ensurePublicationColumns();
-
 	const row = await queryOne<AssignmentRow>(
 		`SELECT a.*,
        c.name as class_name,
@@ -130,9 +88,6 @@ export const getById = async (id: string) => {
 };
 
 export const create = async (data: CreateAssignmentRequest, createdBy: string) => {
-	await ensureSortOrderColumn();
-	await ensurePublicationColumns();
-
 	return transaction(async client => {
 		const sortOrderResult = await client.query<{ next_sort_order: number }>(
 			`SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_sort_order
@@ -160,8 +115,6 @@ export const create = async (data: CreateAssignmentRequest, createdBy: string) =
 };
 
 export const update = async (id: string, data: UpdateAssignmentRequest) => {
-	await ensurePublicationColumns();
-
 	await transaction(async client => {
 		const sets: string[] = [];
 		const params: unknown[] = [];
@@ -244,8 +197,6 @@ export const deleteAssignment = async (id: string) => {
 };
 
 export const reorderByClass = async (classId: string, assignmentIds: string[]) => {
-	await ensureSortOrderColumn();
-
 	await transaction(async client => {
 		const existingAssignments = await client.query<{ id: string }>("SELECT id FROM assignments WHERE class_id = $1", [classId]);
 		const existingIds = existingAssignments.rows.map(row => row.id);

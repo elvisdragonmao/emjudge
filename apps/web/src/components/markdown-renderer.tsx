@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { useMemo } from "react";
 
@@ -8,7 +9,8 @@ interface MarkdownRendererProps {
 
 export const MarkdownRenderer = ({ content, className }: MarkdownRendererProps) => {
 	const html = useMemo(() => {
-		return marked.parse(content, { async: false }) as string;
+		const rawHtml = marked.parse(content, { async: false }) as string;
+		return DOMPurify.sanitize(rawHtml);
 	}, [content]);
 
 	return <div className={`markdown-content ${className ?? ""}`} dangerouslySetInnerHTML={{ __html: html }} />;

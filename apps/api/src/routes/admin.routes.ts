@@ -15,6 +15,7 @@ import { authSecurity, createRouteSchema, toJsonSchema, withErrorResponses } fro
 import { requireRole } from "../middleware/auth.js";
 import * as settingsService from "../services/settings.service.js";
 import * as userService from "../services/user.service.js";
+import { isUniqueConstraintError } from "../utils/pg-error.js";
 
 const BulkImportResult = z.object({
 	totalCount: z.number(),
@@ -119,8 +120,7 @@ export const adminRoutes = async (app: FastifyInstance) => {
 				const user = await userService.createUser(body);
 				return reply.status(201).send(user);
 			} catch (err: unknown) {
-				const message = err instanceof Error ? err.message : "Unknown error";
-				if (message.includes("uq_users_username")) {
+				if (isUniqueConstraintError(err, "uq_users_username")) {
 					return reply.status(409).send({ error: "帳號已存在", statusCode: 409 });
 				}
 				throw err;

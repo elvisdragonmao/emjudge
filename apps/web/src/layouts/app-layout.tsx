@@ -1,5 +1,6 @@
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 import { Laptop, LogOut, Moon, Sun } from "@/lib/icons";
 import { useAuth } from "@/stores/auth";
 import { useEffect, useState } from "react";
@@ -33,6 +34,7 @@ export const AppLayout = () => {
 	}, [theme]);
 
 	const handleLogout = () => {
+		void api.post("/auth/logout").catch(() => null);
 		logout();
 		navigate("/login");
 	};

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const EnvSchema = z.object({
+	NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 	PORT: z.coerce.number().default(3000),
 	HOST: z.string().default("0.0.0.0"),
 
@@ -29,5 +30,30 @@ const EnvSchema = z.object({
 	DEFAULT_ADMIN_PASSWORD: z.string().default("admin123")
 });
 
-export const config = EnvSchema.parse(process.env);
+const DEV_DEFAULTS = {
+	JWT_SECRET: "dev-secret-change-in-production",
+	DEFAULT_ADMIN_PASSWORD: "admin123",
+	MINIO_ACCESS_KEY: "minioadmin",
+	MINIO_SECRET_KEY: "minioadmin"
+} as const;
+
+const validatedEnv = EnvSchema.superRefine((env, ctx) => {
+	if (env.NODE_ENV !== "production") {
+		return;
+	}
+
+	if (env.JWT_SECRET === DEV_DEFAULTS.JWT_SECRET) {
+		ctx.addIssue({ code: z.ZodIssueCode.custom, message: "JWT_SECRET must be changed in production" });
+	}
+
+	if (env.DEFAULT_ADMIN_PASSWORD === DEV_DEFAULTS.DEFAULT_ADMIN_PASSWORD) {
+		ctx.addIssue({ code: z.ZodIssueCode.custom, message: "DEFAULT_ADMIN_PASSWORD must be changed in production" });
+	}
+
+	if (env.MINIO_ACCESS_KEY === DEV_DEFAULTS.MINIO_ACCESS_KEY || env.MINIO_SECRET_KEY === DEV_DEFAULTS.MINIO_SECRET_KEY) {
+		ctx.addIssue({ code: z.ZodIssueCode.custom, message: "MinIO credentials must be changed in production" });
+	}
+});
+
+export const config = validatedEnv.parse(process.env);
 export type Config = typeof config;

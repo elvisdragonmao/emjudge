@@ -271,7 +271,13 @@ const recoverStaleJobs = async () => {
 		`SELECT id, run_id, submission_id
      FROM judge_jobs
      WHERE status IN ('locked', 'running')
-       AND attempts < max_attempts`
+	       AND attempts < max_attempts
+	       AND (
+	         (status = 'locked' AND locked_at IS NOT NULL AND locked_at < NOW() - ($1::text || ' milliseconds')::interval)
+	         OR
+	         (status = 'running' AND started_at IS NOT NULL AND started_at < NOW() - ($1::text || ' milliseconds')::interval)
+	       )`,
+		[config.STALE_JOB_TIMEOUT_MS]
 	);
 
 	if (staleJobs.length === 0) return;
@@ -300,7 +306,7 @@ const recoverStaleJobs = async () => {
 		[submissionIds]
 	);
 
-	console.warn(`[${config.WORKER_ID}] Recovered ${staleJobs.length} in-progress job(s) at startup and re-queued`);
+	console.warn(`[${config.WORKER_ID}] Recovered ${staleJobs.length} stale in-progress job(s) older than ${config.STALE_JOB_TIMEOUT_MS}ms and re-queued`);
 };
 
 const gracefulShutdown = async (signal: string) => {
