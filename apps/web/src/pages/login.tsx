@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useLogin, useRegistrationStatus } from "@/hooks/use-api";
 import { ApiError } from "@/lib/api";
 import { LogIn, UserPlus } from "@/lib/icons";
-import { useAuth } from "@/stores/auth";
+import { setAuthUser } from "@/stores/auth";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
@@ -15,7 +15,6 @@ export const LoginPage = () => {
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
-	const { login } = useAuth();
 	const navigate = useNavigate();
 	const loginMutation = useLogin();
 	const { data: registrationStatus } = useRegistrationStatus();
@@ -27,7 +26,7 @@ export const LoginPage = () => {
 			{ username, password },
 			{
 				onSuccess: data => {
-					login(data.token, data.user);
+					setAuthUser(data.user);
 					navigate("/classes");
 				},
 				onError: error => {

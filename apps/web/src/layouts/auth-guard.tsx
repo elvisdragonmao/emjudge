@@ -7,7 +7,11 @@ interface AuthGuardProps {
 }
 
 export const AuthGuard = ({ allowedRoles }: AuthGuardProps) => {
-	const { isAuthenticated, user } = useAuth();
+	const { isAuthenticated, initialized, user } = useAuth();
+
+	if (!initialized) {
+		return null;
+	}
 
 	if (!isAuthenticated || !user) {
 		return <Navigate to="/login" replace />;

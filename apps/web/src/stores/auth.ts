@@ -9,12 +9,11 @@ interface AuthUser {
 }
 
 interface AuthState {
-	token: string | null;
 	user: AuthUser | null;
+	initialized: boolean;
 }
 
 let state: AuthState = {
-	token: null,
 	user: (() => {
 		try {
 			const raw = localStorage.getItem("user");
@@ -22,7 +21,8 @@ let state: AuthState = {
 		} catch {
 			return null;
 		}
-	})()
+	})(),
+	initialized: false
 };
 
 const listeners = new Set<() => void>();
@@ -42,15 +42,26 @@ const getSnapshot = () => {
 	return state;
 };
 
-export const setAuth = (token: string, user: AuthUser) => {
-	localStorage.setItem("user", JSON.stringify(user));
-	state = { token, user };
+export const clearAuth = () => {
+	localStorage.removeItem("user");
+	state = { user: null, initialized: true };
 	emitChange();
 };
 
-export const clearAuth = () => {
-	localStorage.removeItem("user");
-	state = { token: null, user: null };
+export const setAuthUser = (user: AuthUser | null) => {
+	if (user) {
+		localStorage.setItem("user", JSON.stringify(user));
+	} else {
+		localStorage.removeItem("user");
+	}
+
+	state = { user, initialized: true };
+	emitChange();
+};
+
+export const markAuthInitialized = () => {
+	if (state.initialized) return;
+	state = { ...state, initialized: true };
 	emitChange();
 };
 
@@ -65,19 +76,14 @@ export const updateUser = (partial: Partial<AuthUser>) => {
 export const useAuth = () => {
 	const authState = useSyncExternalStore(subscribe, getSnapshot);
 
-	const login = useCallback((token: string, user: AuthUser) => {
-		setAuth(token, user);
-	}, []);
-
 	const logout = useCallback(() => {
 		clearAuth();
 	}, []);
 
 	return {
-		token: authState.token,
 		user: authState.user,
-		isAuthenticated: !!authState.token,
-		login,
+		initialized: authState.initialized,
+		isAuthenticated: !!authState.user,
 		logout
 	};
 };
