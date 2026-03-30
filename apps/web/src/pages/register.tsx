@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useRegister, useRegistrationStatus } from "@/hooks/use-api";
 import { ApiError } from "@/lib/api";
 import { LogIn, UserPlus } from "@/lib/icons";
-import { useAuth } from "@/stores/auth";
+import { setAuthUser } from "@/stores/auth";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
@@ -13,7 +13,6 @@ import { Link, useNavigate } from "react-router";
 export const RegisterPage = () => {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
-	const { login } = useAuth();
 	const { data: registrationStatus, isLoading } = useRegistrationStatus();
 	const registerMutation = useRegister();
 
@@ -36,7 +35,7 @@ export const RegisterPage = () => {
 			{ username, displayName, password },
 			{
 				onSuccess: data => {
-					login(data.token, data.user);
+					setAuthUser(data.user);
 					navigate("/classes");
 				},
 				onError: error => {

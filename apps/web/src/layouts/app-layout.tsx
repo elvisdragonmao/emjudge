@@ -1,14 +1,14 @@
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { Laptop, LogOut, Moon, Sun } from "@/lib/icons";
-import { useAuth } from "@/stores/auth";
+import { markAuthInitialized, setAuthUser, useAuth } from "@/stores/auth";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useNavigate } from "react-router";
 
 export const AppLayout = () => {
-	const { user, logout } = useAuth();
+	const { initialized, user, logout } = useAuth();
 	const navigate = useNavigate();
 	const { t } = useTranslation();
 	const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
@@ -18,6 +18,41 @@ export const AppLayout = () => {
 		if (stored) {
 			setTheme(stored);
 		}
+	}, []);
+
+	useEffect(() => {
+		let active = true;
+		const fetchMe = async () => {
+			try {
+				const me = await api.get<{
+					id: string;
+					username: string;
+					displayName: string;
+					role: "admin" | "teacher" | "student";
+				}>("/me");
+
+				if (!active) return;
+				setAuthUser({
+					id: me.id,
+					username: me.username,
+					displayName: me.displayName,
+					role: me.role
+				});
+			} catch (error) {
+				if (!active) return;
+				if (error instanceof ApiError && error.statusCode === 401) {
+					setAuthUser(null);
+					return;
+				}
+
+				markAuthInitialized();
+			}
+		};
+
+		void fetchMe();
+		return () => {
+			active = false;
+		};
 	}, []);
 
 	useEffect(() => {
@@ -38,6 +73,10 @@ export const AppLayout = () => {
 		logout();
 		navigate("/login");
 	};
+
+	if (!initialized) {
+		return null;
+	}
 
 	return (
 		<div className="flex min-h-screen flex-col">
