@@ -15,6 +15,9 @@ interface AssignmentRow {
 	created_by: string;
 	created_at: Date;
 	submission_count?: string;
+	latest_submission_status?: "pending" | "queued" | "running" | "completed" | "failed" | "error" | null;
+	latest_submission_score?: number | null;
+	latest_submission_max_score?: number | null;
 	class_name?: string;
 }
 
@@ -40,19 +43,32 @@ const toSummary = (row: AssignmentRow) => {
 		allowMultipleSubmissions: row.allow_multiple_submissions,
 		sortOrder: row.sort_order ?? 0,
 		submissionCount: parseInt(row.submission_count ?? "0", 10),
+		latestSubmissionStatus: row.latest_submission_status ?? null,
+		latestSubmissionScore: row.latest_submission_score ?? null,
+		latestSubmissionMaxScore: row.latest_submission_max_score ?? null,
 		createdAt: row.created_at.toISOString()
 	};
 };
 
-export const listByClass = async (classId: string, includeUnpublished = false) => {
+export const listByClass = async (classId: string, userId: string, includeUnpublished = false) => {
 	const rows = await queryMany<AssignmentRow>(
 		`SELECT a.*,
-       (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count
-     FROM assignments a
-      WHERE a.class_id = $1
-	       AND ($2::boolean = true OR (a.status = 'published' AND (a.published_at IS NULL OR a.published_at <= NOW())))
+	       (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count,
+	       latest_submission.status AS latest_submission_status,
+	       latest_submission.score AS latest_submission_score,
+	       latest_submission.max_score AS latest_submission_max_score
+	     FROM assignments a
+	     LEFT JOIN LATERAL (
+	       SELECT s.status, s.score, s.max_score
+	       FROM submissions s
+	       WHERE s.assignment_id = a.id AND s.user_id = $2
+	       ORDER BY s.created_at DESC
+	       LIMIT 1
+	     ) latest_submission ON true
+	      WHERE a.class_id = $1
+	       AND ($3::boolean = true OR (a.status = 'published' AND (a.published_at IS NULL OR a.published_at <= NOW())))
 	     ORDER BY a.sort_order ASC, a.created_at DESC, a.id DESC`,
-		[classId, includeUnpublished]
+		[classId, userId, includeUnpublished]
 	);
 	return rows.map(toSummary);
 };
@@ -60,11 +76,14 @@ export const listByClass = async (classId: string, includeUnpublished = false) =
 export const getById = async (id: string) => {
 	const row = await queryOne<AssignmentRow>(
 		`SELECT a.*,
-       c.name as class_name,
-       (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count
-     FROM assignments a
-     JOIN classes c ON c.id = a.class_id
-     WHERE a.id = $1`,
+	       c.name as class_name,
+	       (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id) as submission_count,
+	       NULL::text AS latest_submission_status,
+	       NULL::numeric AS latest_submission_score,
+	       NULL::numeric AS latest_submission_max_score
+	     FROM assignments a
+	     JOIN classes c ON c.id = a.class_id
+	     WHERE a.id = $1`,
 		[id]
 	);
 	if (!row) return null;

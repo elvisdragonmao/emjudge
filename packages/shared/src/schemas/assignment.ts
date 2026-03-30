@@ -69,6 +69,9 @@ export const AssignmentSummary = z.object({
 	allowMultipleSubmissions: z.boolean(),
 	sortOrder: z.number().int(),
 	submissionCount: z.number(),
+	latestSubmissionStatus: z.enum(["pending", "queued", "running", "completed", "failed", "error"]).nullable(),
+	latestSubmissionScore: z.number().nullable(),
+	latestSubmissionMaxScore: z.number().nullable(),
 	createdAt: z.string().datetime()
 });
 export type AssignmentSummary = z.infer<typeof AssignmentSummary>;

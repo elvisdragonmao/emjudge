@@ -31,7 +31,7 @@ export const assignmentRoutes = async (app: FastifyInstance) => {
 				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
 			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
-			return assignmentService.listByClass(id, canManage);
+			return assignmentService.listByClass(id, request.userId, canManage);
 		}
 	);
 

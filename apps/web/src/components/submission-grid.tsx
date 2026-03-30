@@ -35,7 +35,7 @@ export const SubmissionGrid = ({ submissions }: SubmissionGridProps) => {
 						<CardContent className="p-3">
 							<div className="flex items-center justify-between">
 								<span className="text-sm font-medium">{sub.displayName}</span>
-								<Badge variant={getSubmissionStatusVariant(sub.status)}>{getSubmissionStatusLabel(sub.status)}</Badge>
+								<Badge variant={getSubmissionStatusVariant(sub)}>{getSubmissionStatusLabel(sub)}</Badge>
 							</div>
 							{sub.score !== null && (
 								<p className="mt-1 text-xs text-muted-foreground">
@@ -79,7 +79,7 @@ export const SubmissionList = ({ submissions }: SubmissionGridProps) => {
 									{sub.score} / {sub.maxScore}
 								</span>
 							)}
-							<Badge variant={getSubmissionStatusVariant(sub.status)}>{getSubmissionStatusLabel(sub.status)}</Badge>
+							<Badge variant={getSubmissionStatusVariant(sub)}>{getSubmissionStatusLabel(sub)}</Badge>
 							<span className="text-xs text-muted-foreground">{formatDateTime(sub.createdAt)}</span>
 						</div>
 					</div>
