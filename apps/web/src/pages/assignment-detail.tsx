@@ -12,9 +12,26 @@ import { ApiError, getApiErrorMessage } from "@/lib/api";
 import { LayoutGrid, List, PencilLine } from "@/lib/icons";
 import { isSubmissionActive } from "@/lib/submission-status";
 import { useAuth } from "@/stores/auth";
+import type { SubmissionSummary } from "@judge/shared";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
+
+const SubmissionSection = ({ title, submissions, viewMode }: { title: string; submissions: SubmissionSummary[]; viewMode: "list" | "grid" }) => {
+	if (submissions.length === 0) {
+		return null;
+	}
+
+	return (
+		<div className="space-y-3">
+			<div className="flex items-center justify-between gap-3">
+				<h3 className="text-base font-semibold">{title}</h3>
+				<span className="text-xs text-muted-foreground">{submissions.length}</span>
+			</div>
+			{viewMode === "grid" ? <SubmissionGrid submissions={submissions} /> : <SubmissionList submissions={submissions} />}
+		</div>
+	);
+};
 
 export const AssignmentDetailPage = () => {
 	const { t } = useTranslation();
@@ -78,6 +95,9 @@ export const AssignmentDetailPage = () => {
 			return true;
 		});
 	}, [submissionData?.submissions, showLatestOnly]);
+
+	const ownSubmissions = useMemo(() => visibleSubmissions.filter(submission => submission.userId === user?.id), [visibleSubmissions, user?.id]);
+	const otherSubmissions = useMemo(() => visibleSubmissions.filter(submission => submission.userId !== user?.id), [visibleSubmissions, user?.id]);
 
 	const submissionsRefreshCountdown = useRefetchCountdown(hasActiveSubmissions, 5000, submissionsUpdatedAt);
 
@@ -197,7 +217,12 @@ export const AssignmentDetailPage = () => {
 
 				{visibleSubmissions.length === 0 && <p className="text-muted-foreground">{t("pages.assignmentDetail.noSubmissions")}</p>}
 
-				{visibleSubmissions.length > 0 && (viewMode === "grid" ? <SubmissionGrid submissions={visibleSubmissions} /> : <SubmissionList submissions={visibleSubmissions} />)}
+				{visibleSubmissions.length > 0 && (
+					<div className="space-y-6">
+						<SubmissionSection title={t("pages.assignmentDetail.mySubmissions", { defaultValue: "My submissions" })} submissions={ownSubmissions} viewMode={viewMode} />
+						<SubmissionSection title={t("pages.assignmentDetail.otherSubmissions", { defaultValue: "Other submissions" })} submissions={otherSubmissions} viewMode={viewMode} />
+					</div>
+				)}
 			</div>
 		</div>
 	);

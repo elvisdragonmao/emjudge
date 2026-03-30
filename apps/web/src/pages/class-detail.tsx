@@ -20,6 +20,8 @@ import {
 import { formatDate, i18n } from "@/i18n";
 import { getApiErrorMessage } from "@/lib/api";
 import { Copy, GripVertical, Plus, RotateCcw, UserMinus, UserPlus, Users, X } from "@/lib/icons";
+import { getSubmissionStatusLabel, getSubmissionStatusVariant, getSubmissionVerdict } from "@/lib/submission-status";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/stores/auth";
 import type { AssignmentSummary } from "@judge/shared";
 import { useEffect, useRef, useState, type DragEvent } from "react";
@@ -85,6 +87,24 @@ export const ClassDetailPage = () => {
 	);
 	const canManageAssignments = canManageClass;
 	const canDragAssignments = canManageAssignments && !reorderAssignmentsMutation.isPending;
+
+	const getAssignmentCardTone = (assignment: AssignmentSummary) => {
+		const verdict = getSubmissionVerdict({
+			status: assignment.latestSubmissionStatus ?? "",
+			score: assignment.latestSubmissionScore,
+			maxScore: assignment.latestSubmissionMaxScore
+		});
+
+		if (verdict === "AC") {
+			return "border-[var(--color-success)]/35 bg-[var(--color-success)]/10";
+		}
+
+		if (verdict === "WA" || assignment.latestSubmissionStatus === "failed" || assignment.latestSubmissionStatus === "error") {
+			return "border-destructive/35 bg-destructive/10";
+		}
+
+		return "";
+	};
 
 	const handleAddMember = (userId: string) => {
 		setMemberMessage("");
@@ -278,7 +298,7 @@ export const ClassDetailPage = () => {
 					<Card
 						key={assignment.id}
 						data-assignment-card={assignment.id}
-						className={`transition-shadow hover:shadow-md ${draggingAssignmentId === assignment.id ? "opacity-70" : ""}`}
+						className={cn("transition-shadow hover:shadow-md", getAssignmentCardTone(assignment), draggingAssignmentId === assignment.id && "opacity-70")}
 						onDragOver={event => {
 							if (canDragAssignments) {
 								event.preventDefault();
@@ -342,8 +362,23 @@ export const ClassDetailPage = () => {
 											{assignment.status === "published" && assignment.publishedAt && new Date(assignment.publishedAt) > new Date() && (
 												<Badge variant="outline">{t("pages.assignmentDetail.scheduled")}</Badge>
 											)}
+											{assignment.latestSubmissionStatus && (
+												<Badge
+													variant={getSubmissionStatusVariant({
+														status: assignment.latestSubmissionStatus,
+														score: assignment.latestSubmissionScore,
+														maxScore: assignment.latestSubmissionMaxScore
+													})}
+												>
+													{getSubmissionStatusLabel({
+														status: assignment.latestSubmissionStatus,
+														score: assignment.latestSubmissionScore,
+														maxScore: assignment.latestSubmissionMaxScore
+													})}
+												</Badge>
+											)}
 											{assignment.dueDate && (
-												<span className="text-xs text-muted-foreground">
+												<span className="rounded-full bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">
 													{t("pages.classDetail.dueDate", {
 														date: formatDate(assignment.dueDate)
 													})}

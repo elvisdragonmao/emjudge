@@ -159,8 +159,8 @@ export const SubmissionDetailPage = () => {
 			)}
 
 			<div className="flex items-center gap-4">
-				<Badge variant={getSubmissionStatusVariant(submission.status)} className="text-sm">
-					{getSubmissionStatusLabel(submission.status)}
+				<Badge variant={getSubmissionStatusVariant(submission)} className="text-sm">
+					{getSubmissionStatusLabel(submission)}
 				</Badge>
 				{isInQueue && (
 					<span className="text-xs text-muted-foreground">
@@ -216,7 +216,7 @@ export const SubmissionDetailPage = () => {
 					<CardHeader>
 						<div className="flex items-center justify-between">
 							<CardTitle className="text-base">{t("pages.submissionDetail.judgeResult")}</CardTitle>
-							<Badge variant={getSubmissionStatusVariant(run.status)}>{getSubmissionStatusLabel(run.status)}</Badge>
+							<Badge variant={getSubmissionStatusVariant(run)}>{getSubmissionStatusLabel(run)}</Badge>
 						</div>
 						{run.startedAt && (
 							<p className="text-xs text-muted-foreground">
