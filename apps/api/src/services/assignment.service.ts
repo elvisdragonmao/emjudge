@@ -1,5 +1,6 @@
-import type { CreateAssignmentRequest, UpdateAssignmentRequest } from "@judge/shared";
+import { MINIO_BUCKETS, type CreateAssignmentRequest, type UpdateAssignmentRequest } from "@judge/shared";
 import { query, queryMany, queryOne, transaction } from "../db/pool.js";
+import { removeObject } from "../utils/minio.js";
 
 interface AssignmentRow {
 	id: string;
@@ -29,6 +30,10 @@ interface SpecRow {
 	timeout_ms: number;
 	allowed_paths: string[];
 	blocked_paths: string[];
+}
+
+interface MinioKeyRow {
+	minio_key: string;
 }
 
 const toSummary = (row: AssignmentRow) => {
@@ -212,7 +217,29 @@ export const update = async (id: string, data: UpdateAssignmentRequest) => {
 };
 
 export const deleteAssignment = async (id: string) => {
+	const [submissionFiles, submissionArtifacts] = await Promise.all([
+		queryMany<MinioKeyRow>(
+			`SELECT sf.minio_key
+		     FROM submission_files sf
+		     JOIN submissions s ON s.id = sf.submission_id
+		     WHERE s.assignment_id = $1`,
+			[id]
+		),
+		queryMany<MinioKeyRow>(
+			`SELECT sa.minio_key
+		     FROM submission_artifacts sa
+		     JOIN submissions s ON s.id = sa.submission_id
+		     WHERE s.assignment_id = $1`,
+			[id]
+		)
+	]);
+
 	await query("DELETE FROM assignments WHERE id = $1", [id]);
+
+	await Promise.allSettled([
+		...submissionFiles.map(file => removeObject(MINIO_BUCKETS.SUBMISSIONS, file.minio_key)),
+		...submissionArtifacts.map(artifact => removeObject(MINIO_BUCKETS.ARTIFACTS, artifact.minio_key))
+	]);
 };
 
 export const reorderByClass = async (classId: string, assignmentIds: string[]) => {

@@ -5,17 +5,17 @@ import { SubmissionGrid, SubmissionList } from "@/components/submission-grid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAssignmentDetail, useClassDetail, useSubmissions, useSubmit } from "@/hooks/use-api";
+import { useAssignmentDetail, useClassDetail, useDeleteAssignment, useSubmissions, useSubmit } from "@/hooks/use-api";
 import { useRefetchCountdown } from "@/hooks/use-refetch-countdown";
 import { formatDateTime } from "@/i18n";
 import { ApiError, getApiErrorMessage } from "@/lib/api";
-import { LayoutGrid, List, PencilLine } from "@/lib/icons";
+import { LayoutGrid, List, PencilLine, Trash2 } from "@/lib/icons";
 import { isSubmissionActive } from "@/lib/submission-status";
 import { useAuth } from "@/stores/auth";
 import type { SubmissionSummary } from "@judge/shared";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 const SubmissionSection = ({ title, submissions, viewMode }: { title: string; submissions: SubmissionSummary[]; viewMode: "list" | "grid" }) => {
 	if (submissions.length === 0) {
@@ -36,14 +36,17 @@ const SubmissionSection = ({ title, submissions, viewMode }: { title: string; su
 export const AssignmentDetailPage = () => {
 	const { t } = useTranslation();
 	const { id } = useParams<{ id: string }>();
+	const navigate = useNavigate();
 	const { user } = useAuth();
 	const { data: assignment, isLoading } = useAssignmentDetail(id!);
 	const { data: classDetail } = useClassDetail(assignment?.classId ?? "");
 	const { data: submissionData, dataUpdatedAt: submissionsUpdatedAt } = useSubmissions(id!);
 	const submitMutation = useSubmit(id!);
+	const deleteMutation = useDeleteAssignment(id!, assignment?.classId ?? "");
 
 	const [viewMode, setViewMode] = useState<"list" | "grid">("grid");
 	const [showLatestOnly, setShowLatestOnly] = useState(true);
+	const [deleteErrorMessage, setDeleteErrorMessage] = useState<string | null>(null);
 
 	const submitErrorMessage = (() => {
 		if (!submitMutation.isError) {
@@ -62,18 +65,15 @@ export const AssignmentDetailPage = () => {
 		return getApiErrorMessage(error, t("pages.assignmentDetail.uploadFailedDefault"));
 	})();
 
-	const handleUpload = useCallback(
-		(files: File[]) => {
-			const formData = new FormData();
-			for (const file of files) {
-				const relativePath = file.webkitRelativePath || file.name;
-				formData.append("path", relativePath);
-				formData.append("file", file, relativePath);
-			}
-			submitMutation.mutate(formData);
-		},
-		[submitMutation]
-	);
+	const handleUpload = (files: File[]) => {
+		const formData = new FormData();
+		for (const file of files) {
+			const relativePath = file.webkitRelativePath || file.name;
+			formData.append("path", relativePath);
+			formData.append("file", file, relativePath);
+		}
+		submitMutation.mutate(formData);
+	};
 
 	const hasActiveSubmissions = submissionData?.submissions.some(submission => isSubmissionActive(submission.status)) ?? false;
 
@@ -125,6 +125,32 @@ export const AssignmentDetailPage = () => {
 	const canManageAssignment = !!user && (user.role === "admin" || currentUserClassRole === "teacher");
 	const canSubmitAssignment = !!user && currentUserClassRole === "student";
 
+	const handleDeleteAssignment = () => {
+		if (!assignment) {
+			return;
+		}
+
+		setDeleteErrorMessage(null);
+
+		const confirmed = window.confirm(
+			t("pages.assignmentDetail.deleteConfirm", {
+				defaultValue: 'Delete assignment "{{title}}"? This also removes its submissions and judge records.',
+				title: assignment.title
+			})
+		);
+
+		if (!confirmed) {
+			return;
+		}
+
+		deleteMutation.mutate(undefined, {
+			onSuccess: () => {
+				navigate(`/classes/${assignment.classId}`);
+			},
+			onError: error => setDeleteErrorMessage(getApiErrorMessage(error, t("pages.assignmentDetail.deleteFailed", { defaultValue: "Delete failed, please try again." })))
+		});
+	};
+
 	return (
 		<div className="space-y-6">
 			<PageTitle title={assignment.title} />
@@ -137,12 +163,20 @@ export const AssignmentDetailPage = () => {
 					{assignment.status === "published" && !isPublishedNow && <Badge variant="outline">{t("pages.assignmentDetail.scheduled")}</Badge>}
 					{isExpired && <Badge variant="destructive">{t("pages.assignmentDetail.expired")}</Badge>}
 					{canManageAssignment && (
-						<Button asChild size="sm" variant="outline">
-							<Link to={`/assignments/${assignment.id}/edit`}>
-								<PencilLine />
-								{t("pages.assignmentDetail.editAssignment")}
-							</Link>
-						</Button>
+						<>
+							<Button asChild size="sm" variant="outline">
+								<Link to={`/assignments/${assignment.id}/edit`}>
+									<PencilLine />
+									{t("pages.assignmentDetail.editAssignment")}
+								</Link>
+							</Button>
+							<Button size="sm" variant="destructive" onClick={handleDeleteAssignment} disabled={deleteMutation.isPending}>
+								<Trash2 />
+								{deleteMutation.isPending
+									? t("pages.assignmentDetail.deletingAssignment", { defaultValue: "Deleting..." })
+									: t("pages.assignmentDetail.deleteAssignment", { defaultValue: "Delete assignment" })}
+							</Button>
+						</>
 					)}
 				</div>
 				<p className="mt-1 text-sm text-muted-foreground">
@@ -156,6 +190,7 @@ export const AssignmentDetailPage = () => {
 						</>
 					)}
 				</p>
+				{deleteErrorMessage && <p className="mt-2 text-sm text-destructive">{deleteErrorMessage}</p>}
 			</div>
 
 			{assignment.description && (

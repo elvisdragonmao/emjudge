@@ -26,6 +26,7 @@ export {
 	Send,
 	Sparkles,
 	Sun,
+	Trash2,
 	Upload,
 	UserMinus,
 	UserPlus,
