@@ -236,6 +236,18 @@ export const useUpdateAssignment = (id: string) => {
 	});
 };
 
+export const useDeleteAssignment = (id: string, classId: string) => {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: () => api.delete<MessageResponse>(`/assignments/${id}`),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.assignmentDetail(id) });
+			qc.invalidateQueries({ queryKey: queryKeys.assignments(classId) });
+			qc.invalidateQueries({ queryKey: ["submissions"] });
+		}
+	});
+};
+
 // ─── Submissions ─────────────────────────────────────────
 export const useSubmissions = (assignmentId: string, page = 1) => {
 	return useQuery({
