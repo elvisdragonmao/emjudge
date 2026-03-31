@@ -240,7 +240,29 @@ export const useUpdateAssignment = (id: string) => {
 export const useSubmissions = (assignmentId: string, page = 1) => {
 	return useQuery({
 		queryKey: queryKeys.submissions(assignmentId, page),
-		queryFn: () => api.get<SubmissionListResponse>(`/assignments/${assignmentId}/submissions?page=${page}`),
+		queryFn: async () => {
+			const limit = 100;
+			let currentPage = page;
+			let total = 0;
+			const submissions: SubmissionListResponse["submissions"] = [];
+
+			while (true) {
+				const response = await api.get<SubmissionListResponse>(`/assignments/${assignmentId}/submissions?page=${currentPage}&limit=${limit}`);
+				submissions.push(...response.submissions);
+				total = response.total;
+
+				if (submissions.length >= total || response.submissions.length < limit) {
+					break;
+				}
+
+				currentPage += 1;
+			}
+
+			return {
+				submissions,
+				total
+			};
+		},
 		enabled: !!assignmentId,
 		refetchInterval: query => (query.state.data?.submissions.some(submission => isSubmissionActive(submission.status)) ? 5000 : false),
 		refetchIntervalInBackground: true
