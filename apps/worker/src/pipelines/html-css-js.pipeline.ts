@@ -129,16 +129,6 @@ export default defineConfig({
 	private runInDocker(workDir: string, timeoutMs: number, submissionId: string): Promise<string> {
 		return new Promise((resolve, reject) => {
 			const containerCacheRoot = "/work/.cache";
-			const dockerCommand = [
-				`mkdir -p ${containerCacheRoot}/home ${containerCacheRoot}/xdg-cache ${containerCacheRoot}/npm-cache ${containerCacheRoot}/tmp`,
-				"echo '[debug] pwd' && pwd",
-				"echo '[debug] ls -la /work' && ls -la /work",
-				"echo '[debug] ls -la /work/tests' && ls -la /work/tests",
-				"if [ -f /work/playwright.config.ts ]; then echo '[debug] playwright.config.ts'; sed -n '1,120p' /work/playwright.config.ts; else echo '[debug] playwright.config.ts missing'; fi",
-				"if [ -f /work/tests/judge.spec.ts ]; then echo '[debug] tests/judge.spec.ts'; sed -n '1,200p' /work/tests/judge.spec.ts; else echo '[debug] tests/judge.spec.ts missing'; fi",
-				"echo '[debug] playwright test discovery' && npx playwright test --list || true",
-				"npx playwright test"
-			].join(" && ");
 			const containerUser = typeof process.getuid === "function" && typeof process.getgid === "function" ? `${process.getuid()}:${process.getgid()}` : null;
 			const args = [
 				"run",
@@ -173,7 +163,7 @@ export default defineConfig({
 				config.JUDGE_IMAGE,
 				"sh",
 				"-c",
-				dockerCommand
+				`mkdir -p ${containerCacheRoot}/home ${containerCacheRoot}/xdg-cache ${containerCacheRoot}/npm-cache ${containerCacheRoot}/tmp && npx playwright test`
 			];
 
 			console.log(`[docker:${submissionId}] Running: ${config.DOCKER_BIN} ${args.join(" ")}`);
