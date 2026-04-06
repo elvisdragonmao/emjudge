@@ -11,6 +11,7 @@ services:
     environment:
       WORKER_ID: worker-1
       CACHE_ROOT_DIR: /var/emjudge/worker1-cache
+      JUDGE_IMAGE: emjudge-judge:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./worker-data/worker1:/var/emjudge
@@ -24,6 +25,7 @@ services:
     environment:
       WORKER_ID: worker-2
       CACHE_ROOT_DIR: /var/emjudge/worker2-cache
+      JUDGE_IMAGE: emjudge-judge:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./worker-data/worker2:/var/emjudge
@@ -37,6 +39,7 @@ services:
     environment:
       WORKER_ID: worker-3
       CACHE_ROOT_DIR: /var/emjudge/worker3-cache
+      JUDGE_IMAGE: emjudge-judge:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./worker-data/worker3:/var/emjudge
