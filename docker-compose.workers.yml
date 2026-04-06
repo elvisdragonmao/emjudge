@@ -1,0 +1,47 @@
+services:
+  worker1:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    image: emjudge-worker:latest
+    container_name: emjudge-worker-1
+    restart: unless-stopped
+    env_file:
+      - ./workers/worker1.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./worker-data/worker1:/var/emjudge
+    networks:
+      - default
+
+  worker2:
+    image: emjudge-worker:latest
+    container_name: emjudge-worker-2
+    restart: unless-stopped
+    env_file:
+      - ./workers/worker2.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./worker-data/worker2:/var/emjudge
+    networks:
+      - default
+    depends_on:
+      - worker1
+
+  worker3:
+    image: emjudge-worker:latest
+    container_name: emjudge-worker-3
+    restart: unless-stopped
+    env_file:
+      - ./workers/worker3.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./worker-data/worker3:/var/emjudge
+    networks:
+      - default
+    depends_on:
+      - worker1
+
+networks:
+  default:
+    name: emjudge-workers
