@@ -14,7 +14,7 @@ services:
       JUDGE_IMAGE: emjudge-judge:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./worker-data/worker1:/var/emjudge
+      - /var/emjudge/worker1-cache:/var/emjudge/worker1-cache
 
   worker2:
     image: emjudge-worker:latest
@@ -28,7 +28,7 @@ services:
       JUDGE_IMAGE: emjudge-judge:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./worker-data/worker2:/var/emjudge
+      - /var/emjudge/worker2-cache:/var/emjudge/worker2-cache
 
   worker3:
     image: emjudge-worker:latest
@@ -42,4 +42,4 @@ services:
       JUDGE_IMAGE: emjudge-judge:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./worker-data/worker3:/var/emjudge
+      - /var/emjudge/worker3-cache:/var/emjudge/worker3-cache
