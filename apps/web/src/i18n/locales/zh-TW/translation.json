@@ -56,7 +56,7 @@
 			"userFiles": "@{{username}} / {{count}} 個檔案"
 		},
 		"scoreChart": {
-			"title": "計分版",
+			"title": "班級累積分數變化",
 			"tooltip": "{{time}}<br/>{{userName}}：{{value}} 分<br/>最新成長作業：{{assignmentTitle}}"
 		},
 		"fileUploader": {
@@ -589,12 +589,12 @@
 		"error": "錯誤"
 	},
 	"judgeStages": {
-		"download": "下載檔案",
+		"download": "下載檔案（MinIO）",
 		"prepare": "準備評測環境",
 		"install": "安裝相依（pnpm）",
 		"build": "建置專案（build）",
 		"test": "執行測試（Playwright）",
-		"upload": "上傳附件",
+		"upload": "上傳附件（MinIO）",
 		"persist": "整理結果"
 	}
 }
