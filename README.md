@@ -102,19 +102,25 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
-### 5. Start the API and web app
+### 5. Build shared schemas
+
+```bash
+pnpm --filter @judge/shared build
+```
+
+### 6. Start the API and web app
 
 ```bash
 pnpm dev
 ```
 
-### 6. Start the judge worker in another terminal
+### 7. Start the judge worker in another terminal
 
 ```bash
 pnpm dev:worker
 ```
 
-### 7. Build the judge runner image
+### 8. Build the judge runner image
 
 ```bash
 docker build -t judge-runner:latest docker/judge-runner/

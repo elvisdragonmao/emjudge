@@ -98,7 +98,8 @@ export const classRoutes = async (app: FastifyInstance) => {
 				return reply.status(403).send({ error: "Forbidden", statusCode: 403 });
 			}
 
-			const cls = await classService.getClassDetail(id, request.userRole === "admin");
+			const canManage = await classService.canManageClass(request.userId, request.userRole, id);
+			const cls = await classService.getClassDetail(id, canManage);
 			if (!cls) {
 				return reply.status(404).send({ error: "班級不存在", statusCode: 404 });
 			}
